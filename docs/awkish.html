@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>miniawk API documentation</title>
-<meta name="description" content="miniawk - a small class in pure python that does awk-like line processing." />
+<title>awkish API documentation</title>
+<meta name="description" content="awkish - Awk is a small class in pure python that does awk-like line processing." />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -19,10 +19,10 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>miniawk</code></h1>
+<h1 class="title">Module <code>awkish</code></h1>
 </header>
 <section id="section-intro">
-<p>miniawk - a small class in pure python that does awk-like line processing.</p>
+<p>awkish - Awk is a small class in pure python that does awk-like line processing.</p>
 </section>
 <section>
 </section>
@@ -33,8 +33,8 @@
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="miniawk.MiniAwk"><code class="flex name class">
-<span>class <span class="ident">MiniAwk</span></span>
+<dt id="awkish.Awk"><code class="flex name class">
+<span>class <span class="ident">Awk</span></span>
 <span>(</span><span>FS=re.compile(' +'), RS=None)</span>
 </code></dt>
 <dd>
@@ -45,8 +45,8 @@
 <dd>the field separator. If a character, each line is split
 using string.split(FS). If a regular expression object,
 each line is split using FS.split(string). If a callable,
-it is called to split the line. Default is to remove multiple
-spaces.</dd>
+it is passed the line and returns a list of fields. The default is
+to remove multiple spaces.</dd>
 <dt><strong><code>RS</code></strong></dt>
 <dd>
 <p>the record separator, used as the newline parameter to an open
@@ -57,66 +57,57 @@ from each line (different behaviour to open).</p>
 </dd>
 </dl>
 <h2 id="returns">Returns</h2>
-<p>a callable MiniAwk object
-A MiniAwk object can be used to process files by calling it. For
+<p>a callable Awk object. This can be used to process files by calling it. For
 example</p>
-<pre><code>ma = MiniAwk()
+<pre><code>ma = Awk()
 # define actions
 ma(filename1, filename2, filename3)
 </code></pre>
-<p>will create a MiniAwk object and run it over the three files named in
+<p>will create a Awk object and run it over the three files named in
 the call.</p></div>
 <h3>Static methods</h3>
 <dl>
-<dt id="miniawk.MiniAwk.CSV"><code class="name flex">
-<span>def <span class="ident">CSV</span></span>(<span>line)</span>
+<dt id="awkish.Awk.CSV"><code class="name flex">
+<span>def <span class="ident">CSV</span></span>(<span>line, strict=False)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>a field seperator function, which can be used as the FS parameter
-when creating a MiniAwk object. This is <strong>not</strong> the same as setting FS to
+when creating a Awk object. This is <strong>not</strong> the same as setting FS to
 a comma.</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>line</code></strong></dt>
 <dd>a string to be interpreted as one line of a CSV file.</dd>
+<dt><strong><code>strict</code></strong></dt>
+<dd>boolean to decide whether to raise an exception if the
+line doesn't conform to RFC4180'</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <p>a list of fields as strings. Escaped strings have their quotes
 removed and double quotes converted to single quotes.
 This mostly follows RFC4180 except that quoted fields cannot contain
 line breaks, as these are used by the file reader to break the file
-into lines. </p>
+into lines.</p>
 <p>If the line does not conform to RFC4180, the function attempts to
-find fields anyway, though it is not always successful.</p></div>
+find fields anyway if strict is False; it raises a ValueError otherwise.</p>
+<p>Note that in the case of strict=True, to use as a FS in Awk it
+has to be wrapped in a lambda, e.g.</p>
+<pre><code>awk = Awk(FS=lambda line: Awk.CSV(line, strict=True))
+</code></pre>
+<p>Otherwise, it is enough to simply say <code>FS=Awk.CSV</code></p>
+<h2 id="raises">Raises</h2>
+<p>ValueError when strict is True and line isn't RFC4180 compatible</p></div>
 </dd>
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="miniawk.MiniAwk.begin"><code class="name flex">
+<dt id="awkish.Awk.begin"><code class="name flex">
 <span>def <span class="ident">begin</span></span>(<span>self, f)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>decorator for functions to be called before any files
-are processed</p>
-<p>For example, if ma is a MiniAwk object, </p>
-<pre><code>@ma.begin
-def setup():
-    global x
-    x = {}
-</code></pre>
-<p>then the setup function will be called at the start of processing.
-Multiple functions can be decorated by begin and will be executed in turn
-at the start of processing.
-Any such decorated function can take arguments called FS, RS, and nr, although it
-can't currently change them.</p></div>
-</dd>
-<dt id="miniawk.MiniAwk.beginfile"><code class="name flex">
-<span>def <span class="ident">beginfile</span></span>(<span>self, f)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>decorator for functions to be called before each file
 being processed</p>
-<p>For example, if ma is a MiniAwk object, </p>
+<p>For example, if ma is a Awk object,</p>
 <pre><code>@ma.beginfile
 def startfile():
     global x
@@ -129,31 +120,31 @@ Any such decorated function can take arguments called FS, RS, nr, and filename,
 although it
 can't currently change them.</p></div>
 </dd>
-<dt id="miniawk.MiniAwk.end"><code class="name flex">
-<span>def <span class="ident">end</span></span>(<span>self, f)</span>
+<dt id="awkish.Awk.beginjob"><code class="name flex">
+<span>def <span class="ident">beginjob</span></span>(<span>self, f)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>decorator for functions to be called after all files
+<div class="desc"><p>decorator for functions to be called before any files
 are processed</p>
-<p>For example, if ma is a MiniAwk object, </p>
-<pre><code>@ma.end
-def cleanup():
+<p>For example, if ma is a Awk object,</p>
+<pre><code>@ma.begin
+def setup():
     global x
     x = {}
 </code></pre>
-<p>then the cleanup function will be called at the end of processing.
-Multiple functions can be decorated by end and will be executed in turn
-at the end of processing.
+<p>then the setup function will be called at the start of processing.
+Multiple functions can be decorated by begin and will be executed in turn
+at the start of processing.
 Any such decorated function can take arguments called FS, RS, and nr, although it
 can't currently change them.</p></div>
 </dd>
-<dt id="miniawk.MiniAwk.endfile"><code class="name flex">
-<span>def <span class="ident">endfile</span></span>(<span>self, f)</span>
+<dt id="awkish.Awk.end"><code class="name flex">
+<span>def <span class="ident">end</span></span>(<span>self, f)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>decorator for functions to be called after each file
 being processed</p>
-<p>For example, if ma is a MiniAwk object, </p>
+<p>For example, if ma is a Awk object,</p>
 <pre><code>@ma.endfile
 def afterfile():
     global x
@@ -165,31 +156,26 @@ after processing any file.
 Any such decorated function can take arguments called FS, RS, nr, and filename,
 although it can't currently change them.</p></div>
 </dd>
-<dt id="miniawk.MiniAwk.on"><code class="name flex">
-<span>def <span class="ident">on</span></span>(<span>self, condition=&lt;function MiniAwk.&lt;lambda&gt;&gt;)</span>
+<dt id="awkish.Awk.endjob"><code class="name flex">
+<span>def <span class="ident">endjob</span></span>(<span>self, f)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>decorator for functions to be called during file processing.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>condition</code></strong></dt>
-<dd>a callable which determines whether the current line
-should be passed to the decorated function. Anything value
-returned other than False or None is equivalent to True. The default is
-<code>lambda: True</code></dd>
-</dl>
-<p>For example, if ma is a MiniAwk object, </p>
-<pre><code>@ma.on(lambda line:line[0]=='$')
-def doline(line):
-    print(line)
+<div class="desc"><p>decorator for functions to be called after all files
+are processed</p>
+<p>For example, if ma is a Awk object,</p>
+<pre><code>@ma.end
+def cleanup():
+    global x
+    x = {}
 </code></pre>
-<p>then <code>doline</code> will be triggered for every line starting with $,
-and print it. Both the condition
-passed to <code>on</code> and the decorated function can use parameters
-FS, RS, nr, fnr, filename, line, fields, f0, f1, &hellip;, and result.</p></div>
+<p>then the cleanup function will be called at the end of processing.
+Multiple functions can be decorated by end and will be executed in turn
+at the end of processing.
+Any such decorated function can take arguments called FS, RS, and nr, although it
+can't currently change them.</p></div>
 </dd>
-<dt id="miniawk.MiniAwk.onmatch"><code class="name flex">
-<span>def <span class="ident">onmatch</span></span>(<span>self, patt)</span>
+<dt id="awkish.Awk.match"><code class="name flex">
+<span>def <span class="ident">match</span></span>(<span>self, patt)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>decorator for functions to be called during file processing.</p>
@@ -199,18 +185,18 @@ FS, RS, nr, fnr, filename, line, fields, f0, f1, &hellip;, and result.</p></div>
 <dd>the regular expression pattern to match to the start of
 the current line</dd>
 </dl>
-<p>For example, if ma is a MiniAwk object, </p>
-<pre><code>@ma.onmatch(r'[A-Z]')
+<p>For example, if ma is a Awk object,</p>
+<pre><code>@ma.match(r'[A-Z]')
 def doline(line):
     print(line)
 </code></pre>
 <p>then <code>doline</code> will be triggered and print every line starting with a capital letter.
 The decorated function can use parameters
 FS, RS, nr, fnr, filename, line, fields, f0, f1, &hellip;, and result.</p>
-<p><code>onmatch(patt)</code> is equivalent to <code>on(lambda line:re.match(patt, line))</code></p></div>
+<p><code>match(patt)</code> is equivalent to <code>when(lambda line:re.match(patt, line))</code></p></div>
 </dd>
-<dt id="miniawk.MiniAwk.onsearch"><code class="name flex">
-<span>def <span class="ident">onsearch</span></span>(<span>self, patt)</span>
+<dt id="awkish.Awk.search"><code class="name flex">
+<span>def <span class="ident">search</span></span>(<span>self, patt)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>decorator for functions to be called during file processing.</p>
@@ -220,15 +206,38 @@ FS, RS, nr, fnr, filename, line, fields, f0, f1, &hellip;, and result.</p>
 <dd>the regular expression pattern to match to anywhere in
 the current line</dd>
 </dl>
-<p>For example, if ma is a MiniAwk object, </p>
-<pre><code>@ma.onmatch(r'[A-Z]')
+<p>For example, if ma is a Awk object,</p>
+<pre><code>@ma.search(r'[A-Z]')
 def doline(line):
     print(line)
 </code></pre>
 <p>then <code>doline</code> will be triggered for every line containing a capital letter.
 The decorated function can use parameters
 FS, RS, nr, fnr, filename, line, fields, f0, f1, &hellip;, and result.</p>
-<p><code>onsearch(patt)</code> is equivalent to <code>on(lambda line:re.search(patt, line))</code></p></div>
+<p><code>search(patt)</code> is equivalent to <code>when(lambda line:re.search(patt, line))</code></p></div>
+</dd>
+<dt id="awkish.Awk.when"><code class="name flex">
+<span>def <span class="ident">when</span></span>(<span>self, condition)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>decorator for functions to be called during file processing.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>condition</code></strong></dt>
+<dd>a boolean or callable which determines whether the current line
+should be passed to the decorated function. Anything value
+returned other than False or None is equivalent to True.
+condition may be True, in which case all lines are processed.</dd>
+</dl>
+<p>For example, if ma is a Awk object,</p>
+<pre><code>@ma.when(lambda line:line[0]=='$')
+def doline(line):
+    print(line)
+</code></pre>
+<p>then <code>doline</code> will be triggered for every line starting with $,
+and print it. Both the condition
+passed to <code>on</code> and the decorated function can use parameters
+FS, RS, nr, fnr, filename, line, fields, f0, f1, &hellip;, and result.</p></div>
 </dd>
 </dl>
 </dd>
@@ -244,16 +253,16 @@ FS, RS, nr, fnr, filename, line, fields, f0, f1, &hellip;, and result.</p>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="miniawk.MiniAwk" href="#miniawk.MiniAwk">MiniAwk</a></code></h4>
+<h4><code><a title="awkish.Awk" href="#awkish.Awk">Awk</a></code></h4>
 <ul class="two-column">
-<li><code><a title="miniawk.MiniAwk.CSV" href="#miniawk.MiniAwk.CSV">CSV</a></code></li>
-<li><code><a title="miniawk.MiniAwk.begin" href="#miniawk.MiniAwk.begin">begin</a></code></li>
-<li><code><a title="miniawk.MiniAwk.beginfile" href="#miniawk.MiniAwk.beginfile">beginfile</a></code></li>
-<li><code><a title="miniawk.MiniAwk.end" href="#miniawk.MiniAwk.end">end</a></code></li>
-<li><code><a title="miniawk.MiniAwk.endfile" href="#miniawk.MiniAwk.endfile">endfile</a></code></li>
-<li><code><a title="miniawk.MiniAwk.on" href="#miniawk.MiniAwk.on">on</a></code></li>
-<li><code><a title="miniawk.MiniAwk.onmatch" href="#miniawk.MiniAwk.onmatch">onmatch</a></code></li>
-<li><code><a title="miniawk.MiniAwk.onsearch" href="#miniawk.MiniAwk.onsearch">onsearch</a></code></li>
+<li><code><a title="awkish.Awk.CSV" href="#awkish.Awk.CSV">CSV</a></code></li>
+<li><code><a title="awkish.Awk.begin" href="#awkish.Awk.begin">begin</a></code></li>
+<li><code><a title="awkish.Awk.beginjob" href="#awkish.Awk.beginjob">beginjob</a></code></li>
+<li><code><a title="awkish.Awk.end" href="#awkish.Awk.end">end</a></code></li>
+<li><code><a title="awkish.Awk.endjob" href="#awkish.Awk.endjob">endjob</a></code></li>
+<li><code><a title="awkish.Awk.match" href="#awkish.Awk.match">match</a></code></li>
+<li><code><a title="awkish.Awk.search" href="#awkish.Awk.search">search</a></code></li>
+<li><code><a title="awkish.Awk.when" href="#awkish.Awk.when">when</a></code></li>
 </ul>
 </li>
 </ul>

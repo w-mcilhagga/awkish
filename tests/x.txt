@@ -1,0 +1,15 @@
+begin
+
+begin ../tests/mawktest.txt
+a 1
+b 2 *** 2 2
+c 3
+d 4 *** 4 4
+
+begin ../tests/mawktest.txt
+a 1
+b 2 *** 2 7
+c 3
+d 4 *** 4 9
+
+end

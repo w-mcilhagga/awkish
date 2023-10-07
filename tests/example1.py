@@ -16,29 +16,29 @@ sys.path.append(os.getcwd())
 # actual example here
 
 import re
-from miniawk import MiniAwk
+from miniawk import Awk
 
-myawk = MiniAwk(FS=re.compile(" +"))
+myawk = Awk(FS=re.compile(" +"))
 
-@myawk.begin
+@myawk.beginjob
 def begin(nr):
     print("begin")
 
-@myawk.beginfile
-def beginf(filename):
+@myawk.begin
+def beginfile(filename):
     print("\nbegin", filename)
 
-@myawk.on(lambda f0: f0 != "")
+@myawk.when(lambda f0: f0 != "")
 def printline(fields):
     print(" ".join(fields), end="")
 
-@myawk.on(lambda f2=1: int(f2) % 2 == 0)
+@myawk.when(lambda f2=1: int(f2) % 2 == 0)
 def doline(nr, f2):
     # difference between fields[n] and fn is that fn is None if it
     # isn't there but fields[n] raises an exception.
     print(" ***", f2, nr, end="")
 
-@myawk.on(lambda line: line != "")
+@myawk.when(lambda line: line != "")
 def printend():
     # terminates a line
     print()

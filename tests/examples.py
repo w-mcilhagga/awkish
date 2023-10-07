@@ -15,27 +15,26 @@ sys.path.append(os.getcwd())
 
 # actual example here
 
-import re
-from miniawk import MiniAwk
+from miniawk import Awk
 
 # Example 1: Print all lines of a file
 
-all_lines = MiniAwk()
+all_lines = Awk()
 
-@all_lines.on()
+@all_lines.when(True)
 def printline(line):
     print(line)
     
 # Example 2: Print the first 10 lines of a file
 
-ten_lines = MiniAwk()
+ten_lines = Awk()
 
-ten_lines.on(lambda nfr:nfr<10)(lambda line:print(line))
+ten_lines.when(lambda nfr:nfr<10)(lambda line:print(line))
 
 
 # Example 3: Count blank lines
 
-blanks = MiniAwk()
+blanks = Awk()
 nblanks = 0
 
 @blanks.onmatch('^ *$')
@@ -50,21 +49,21 @@ def report(fnr):
 
 # Example 4: Remove all spaces.
 
-nospace = MiniAwk()
+nospace = Awk()
 
-@nospace.on()
+@nospace.when(True)
 def printnospaces(fields):
     print(''.join(fields))
     
 # Example 5: print the longest line
 
 # this uses globals
-longest = MiniAwk()
+longest = Awk()
 linelen = -1
 longest_line = None
 
 
-@longest.on(lambda line:len(line)>linelen)
+@longest.when(lambda line:len(line)>linelen)
 def savelong(line):
     global linelen, longest_line
     linelen = len(line)
