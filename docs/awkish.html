@@ -64,11 +64,17 @@ example</p>
 ma(filename1, filename2, filename3)
 </code></pre>
 <p>will create a Awk object and run it over the three files named in
-the call.</p></div>
+the call and dump any output to stdout. The parameters to the call are</p>
+<ul>
+<li><code>*filenames</code> - the names of the text files to process</li>
+<li><code>output</code> - (optiona) the name of the file to dump the program output</li>
+<li><code>mode</code> - (optional) when <code>output</code> is specified, the open mode (defaults
+to "wt")</li>
+</ul></div>
 <h3>Static methods</h3>
 <dl>
 <dt id="awkish.Awk.CSV"><code class="name flex">
-<span>def <span class="ident">CSV</span></span>(<span>line, strict=False)</span>
+<span>def <span class="ident">CSV</span></span>(<span>line, strict=True)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>a field seperator function, which can be used as the FS parameter
@@ -80,7 +86,7 @@ a comma.</p>
 <dd>a string to be interpreted as one line of a CSV file.</dd>
 <dt><strong><code>strict</code></strong></dt>
 <dd>boolean to decide whether to raise an exception if the
-line doesn't conform to RFC4180'</dd>
+line doesn't conform to RFC4180</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <p>a list of fields as strings. Escaped strings have their quotes
@@ -90,9 +96,9 @@ line breaks, as these are used by the file reader to break the file
 into lines.</p>
 <p>If the line does not conform to RFC4180, the function attempts to
 find fields anyway if strict is False; it raises a ValueError otherwise.</p>
-<p>Note that in the case of strict=True, to use as a FS in Awk it
+<p>Note that in the case of strict=False, to use as a FS in Awk it
 has to be wrapped in a lambda, e.g.</p>
-<pre><code>awk = Awk(FS=lambda line: Awk.CSV(line, strict=True))
+<pre><code>awk = Awk(FS=lambda line: Awk.CSV(line, strict=False))
 </code></pre>
 <p>Otherwise, it is enough to simply say <code>FS=Awk.CSV</code></p>
 <h2 id="raises">Raises</h2>
@@ -107,8 +113,8 @@ has to be wrapped in a lambda, e.g.</p>
 <dd>
 <div class="desc"><p>decorator for functions to be called before each file
 being processed</p>
-<p>For example, if ma is a Awk object,</p>
-<pre><code>@ma.beginfile
+<p>For example, if <code>ma</code> is a Awk object,</p>
+<pre><code>@ma.begin
 def startfile():
     global x
     x = {}
@@ -116,9 +122,12 @@ def startfile():
 <p>then the startfile function will be called before processing any file.
 Multiple functions can be decorated by beginfile and will be executed in turn
 before processing any file.
-Any such decorated function can take arguments called FS, RS, nr, and filename,
-although it
-can't currently change them.</p></div>
+Any such decorated function can take the same arguments as <code><a title="awkish.Awk.beginjob" href="#awkish.Awk.beginjob">Awk.beginjob()</a></code> and:</p>
+<ul>
+<li><code>filename</code> - the name fo the file being processed</li>
+<li><code>nfr</code> - the number of records read in the file, which will be zero
+when the function is called.</li>
+</ul></div>
 </dd>
 <dt id="awkish.Awk.beginjob"><code class="name flex">
 <span>def <span class="ident">beginjob</span></span>(<span>self, f)</span>
@@ -126,8 +135,8 @@ can't currently change them.</p></div>
 <dd>
 <div class="desc"><p>decorator for functions to be called before any files
 are processed</p>
-<p>For example, if ma is a Awk object,</p>
-<pre><code>@ma.begin
+<p>For example, if <code>ma</code> is a Awk object,</p>
+<pre><code>@ma.beginjob
 def setup():
     global x
     x = {}
@@ -135,8 +144,13 @@ def setup():
 <p>then the setup function will be called at the start of processing.
 Multiple functions can be decorated by begin and will be executed in turn
 at the start of processing.
-Any such decorated function can take arguments called FS, RS, and nr, although it
-can't currently change them.</p></div>
+Any such decorated function can take any of the following arguments:</p>
+<ul>
+<li><code>FS</code> - the file seperator used when the Awk object was created</li>
+<li><code>RS</code> - the record separator used when the Awk object was created</li>
+<li><code>nr</code> - the number of records read in the job, which be zero
+when the function is called.</li>
+</ul></div>
 </dd>
 <dt id="awkish.Awk.end"><code class="name flex">
 <span>def <span class="ident">end</span></span>(<span>self, f)</span>
@@ -144,8 +158,8 @@ can't currently change them.</p></div>
 <dd>
 <div class="desc"><p>decorator for functions to be called after each file
 being processed</p>
-<p>For example, if ma is a Awk object,</p>
-<pre><code>@ma.endfile
+<p>For example, if <code>ma</code> is a Awk object,</p>
+<pre><code>@ma.end
 def afterfile():
     global x
     x = {}
@@ -153,8 +167,7 @@ def afterfile():
 <p>then the afterfile function will be after processing each file.
 Multiple functions can be decorated by endfile and will be executed in turn
 after processing any file.
-Any such decorated function can take arguments called FS, RS, nr, and filename,
-although it can't currently change them.</p></div>
+Any such decorated function can use the same arguments as <code><a title="awkish.Awk.begin" href="#awkish.Awk.begin">Awk.begin()</a></code>.</p></div>
 </dd>
 <dt id="awkish.Awk.endjob"><code class="name flex">
 <span>def <span class="ident">endjob</span></span>(<span>self, f)</span>
@@ -162,8 +175,8 @@ although it can't currently change them.</p></div>
 <dd>
 <div class="desc"><p>decorator for functions to be called after all files
 are processed</p>
-<p>For example, if ma is a Awk object,</p>
-<pre><code>@ma.end
+<p>For example, if <code>ma</code> is a Awk object,</p>
+<pre><code>@ma.endjob
 def cleanup():
     global x
     x = {}
@@ -171,8 +184,13 @@ def cleanup():
 <p>then the cleanup function will be called at the end of processing.
 Multiple functions can be decorated by end and will be executed in turn
 at the end of processing.
-Any such decorated function can take arguments called FS, RS, and nr, although it
-can't currently change them.</p></div>
+Any such decorated function can take thes same arguments as <code><a title="awkish.Awk.beginjob" href="#awkish.Awk.beginjob">Awk.beginjob()</a></code>.</p></div>
+</dd>
+<dt id="awkish.Awk.find"><code class="name flex">
+<span>def <span class="ident">find</span></span>(<span>self, string)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
 </dd>
 <dt id="awkish.Awk.match"><code class="name flex">
 <span>def <span class="ident">match</span></span>(<span>self, patt)</span>
@@ -191,9 +209,8 @@ def doline(line):
     print(line)
 </code></pre>
 <p>then <code>doline</code> will be triggered and print every line starting with a capital letter.
-The decorated function can use parameters
-FS, RS, nr, fnr, filename, line, fields, f0, f1, &hellip;, and result.</p>
-<p><code>match(patt)</code> is equivalent to <code>when(lambda line:re.match(patt, line))</code></p></div>
+<code>match(patt)</code> is equivalent to <code>when(lambda line:re.match(patt, line))</code></p>
+<p>The decorated function can use the same parameters as <code><a title="awkish.Awk.when" href="#awkish.Awk.when">Awk.when()</a></code></p></div>
 </dd>
 <dt id="awkish.Awk.search"><code class="name flex">
 <span>def <span class="ident">search</span></span>(<span>self, patt)</span>
@@ -212,9 +229,8 @@ def doline(line):
     print(line)
 </code></pre>
 <p>then <code>doline</code> will be triggered for every line containing a capital letter.
-The decorated function can use parameters
-FS, RS, nr, fnr, filename, line, fields, f0, f1, &hellip;, and result.</p>
-<p><code>search(patt)</code> is equivalent to <code>when(lambda line:re.search(patt, line))</code></p></div>
+<code>search(patt)</code> is equivalent to <code>when(lambda line:re.search(patt, line))</code></p>
+<p>The decorated function can use the same parameters as <code><a title="awkish.Awk.when" href="#awkish.Awk.when">Awk.when()</a></code></p></div>
 </dd>
 <dt id="awkish.Awk.when"><code class="name flex">
 <span>def <span class="ident">when</span></span>(<span>self, condition)</span>
@@ -229,15 +245,35 @@ should be passed to the decorated function. Anything value
 returned other than False or None is equivalent to True.
 condition may be True, in which case all lines are processed.</dd>
 </dl>
-<p>For example, if ma is a Awk object,</p>
+<p>For example, if <code>ma</code> is a Awk object,</p>
 <pre><code>@ma.when(lambda line:line[0]=='$')
 def doline(line):
     print(line)
 </code></pre>
-<p>then <code>doline</code> will be triggered for every line starting with $,
-and print it. Both the condition
-passed to <code>on</code> and the decorated function can use parameters
-FS, RS, nr, fnr, filename, line, fields, f0, f1, &hellip;, and result.</p></div>
+<p>then the <code>doline</code> action will be triggered for every line starting with $,
+and print it.</p>
+<p>The default action is <code>lambda line:print(line)</code> so the above could be
+simplified to</p>
+<pre><code>ma.when(lambda line:line[0]=='$')()
+</code></pre>
+<p>If the condition is <code>True</code>, as here</p>
+<pre><code>@ma.when(True)
+def doline(line):
+    print(line)
+</code></pre>
+<p>then the decorated function <code>doline</code> will be called for every line.</p>
+<p>Both the condition
+passed to <code>when</code> and the decorated function can use the same parameters
+passed to <code><a title="awkish.Awk.begin" href="#awkish.Awk.begin">Awk.begin()</a></code> and in addition:</p>
+<ul>
+<li><code>line</code> - the entire line being processed</li>
+<li><code>fields</code> - a list of fields parsed from the line</li>
+<li><code>f0</code> - synonym for <code>line</code>, like awk's $0 parameter</li>
+<li><code>f1</code>, <code>f2</code>, &hellip; - the individual parsed fields (which are None if
+they don't exist)</li>
+<li><code>nf</code> - the number of fields, equal to <code>len(fields)</code></li>
+<li><code>result</code> - the result of the condition passed to <code>when</code></li>
+</ul></div>
 </dd>
 </dl>
 </dd>
@@ -260,6 +296,7 @@ FS, RS, nr, fnr, filename, line, fields, f0, f1, &hellip;, and result.</p></div>
 <li><code><a title="awkish.Awk.beginjob" href="#awkish.Awk.beginjob">beginjob</a></code></li>
 <li><code><a title="awkish.Awk.end" href="#awkish.Awk.end">end</a></code></li>
 <li><code><a title="awkish.Awk.endjob" href="#awkish.Awk.endjob">endjob</a></code></li>
+<li><code><a title="awkish.Awk.find" href="#awkish.Awk.find">find</a></code></li>
 <li><code><a title="awkish.Awk.match" href="#awkish.Awk.match">match</a></code></li>
 <li><code><a title="awkish.Awk.search" href="#awkish.Awk.search">search</a></code></li>
 <li><code><a title="awkish.Awk.when" href="#awkish.Awk.when">when</a></code></li>

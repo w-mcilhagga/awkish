@@ -42,7 +42,7 @@ class Awk:
     _csv_re = re.compile(record)
 
     @staticmethod
-    def CSV(line, strict=False):
+    def CSV(line, strict=True):
         """a field seperator function, which can be used as the FS parameter
         when creating a Awk object. This is **not** the same as setting FS to
         a comma.
@@ -50,7 +50,7 @@ class Awk:
         Args:
             line: a string to be interpreted as one line of a CSV file.
             strict: boolean to decide whether to raise an exception if the
-                line doesn't conform to RFC4180'
+                line doesn't conform to RFC4180
 
         Returns:
             a list of fields as strings. Escaped strings have their quotes
@@ -63,14 +63,14 @@ class Awk:
         If the line does not conform to RFC4180, the function attempts to
         find fields anyway if strict is False; it raises a ValueError otherwise.
 
-        Note that in the case of strict=True, to use as a FS in Awk it
+        Note that in the case of strict=False, to use as a FS in Awk it
         has to be wrapped in a lambda, e.g.
-        
+
         ```
-        awk = Awk(FS=lambda line: Awk.CSV(line, strict=True))
+        awk = Awk(FS=lambda line: Awk.CSV(line, strict=False))
         ```
         Otherwise, it is enough to simply say `FS=Awk.CSV`
-        
+
         Raises:
             ValueError when strict is True and line isn't RFC4180 compatible
         """
@@ -110,7 +110,12 @@ class Awk:
         ma(filename1, filename2, filename3)
         ```
         will create a Awk object and run it over the three files named in
-        the call.
+        the call and dump any output to stdout. The parameters to the call are
+
+        * `*filenames` - the names of the text files to process
+        * `output` - (optiona) the name of the file to dump the program output
+        * `mode` - (optional) when `output` is specified, the open mode (defaults
+            to "wt")
         """
         self.FS = FS  # field separator
         self.RS = RS  # record separator, passed to open() as newline
@@ -124,9 +129,9 @@ class Awk:
         """decorator for functions to be called before any files
         are processed
 
-        For example, if ma is a Awk object,
+        For example, if `ma` is a Awk object,
         ```
-        @ma.begin
+        @ma.beginjob
         def setup():
             global x
             x = {}
@@ -134,8 +139,13 @@ class Awk:
         then the setup function will be called at the start of processing.
         Multiple functions can be decorated by begin and will be executed in turn
         at the start of processing.
-        Any such decorated function can take arguments called FS, RS, and nr, although it
-        can't currently change them.
+        Any such decorated function can take any of the following arguments:
+
+        * `FS` - the file seperator used when the Awk object was created
+        * `RS` - the record separator used when the Awk object was created
+        * `nr` - the number of records read in the job, which be zero
+           when the function is called.
+
         """
         self.beginjob_calls.append(_argwrap(f))
 
@@ -143,9 +153,9 @@ class Awk:
         """decorator for functions to be called after all files
         are processed
 
-        For example, if ma is a Awk object,
+        For example, if `ma` is a Awk object,
         ```
-        @ma.end
+        @ma.endjob
         def cleanup():
             global x
             x = {}
@@ -153,8 +163,7 @@ class Awk:
         then the cleanup function will be called at the end of processing.
         Multiple functions can be decorated by end and will be executed in turn
         at the end of processing.
-        Any such decorated function can take arguments called FS, RS, and nr, although it
-        can't currently change them.
+        Any such decorated function can take thes same arguments as `Awk.beginjob`.
         """
 
         self.endjob_calls.append(_argwrap(f))
@@ -163,9 +172,9 @@ class Awk:
         """decorator for functions to be called before each file
         being processed
 
-        For example, if ma is a Awk object,
+        For example, if `ma` is a Awk object,
         ```
-        @ma.beginfile
+        @ma.begin
         def startfile():
             global x
             x = {}
@@ -173,9 +182,12 @@ class Awk:
         then the startfile function will be called before processing any file.
         Multiple functions can be decorated by beginfile and will be executed in turn
         before processing any file.
-        Any such decorated function can take arguments called FS, RS, nr, and filename,
-        although it
-        can't currently change them.
+        Any such decorated function can take the same arguments as `Awk.beginjob` and:
+
+        * `filename` - the name fo the file being processed
+        * `nfr` - the number of records read in the file, which will be zero
+           when the function is called.
+
         """
         self.begin_calls.append(_argwrap(f))
 
@@ -183,9 +195,9 @@ class Awk:
         """decorator for functions to be called after each file
         being processed
 
-        For example, if ma is a Awk object,
+        For example, if `ma` is a Awk object,
         ```
-        @ma.endfile
+        @ma.end
         def afterfile():
             global x
             x = {}
@@ -193,10 +205,19 @@ class Awk:
         then the afterfile function will be after processing each file.
         Multiple functions can be decorated by endfile and will be executed in turn
         after processing any file.
-        Any such decorated function can take arguments called FS, RS, nr, and filename,
-        although it can't currently change them.
+        Any such decorated function can use the same arguments as `Awk.begin`.
         """
         self.end_calls.append(_argwrap(f))
+
+    def _condition_decorator(self, condition):
+        # internal to make the decorator
+
+        def condition_decorator(f=lambda line: print(line)):
+            # introspect f to see what to pass it.
+            self.calls.append([_argwrap(condition), _argwrap(f)])
+            return f
+
+        return condition_decorator
 
     def when(self, condition):
         """decorator for functions to be called during file processing.
@@ -204,31 +225,57 @@ class Awk:
         Args:
             condition: a boolean or callable which determines whether the current line
                 should be passed to the decorated function. Anything value
-                returned other than False or None is equivalent to True. 
+                returned other than False or None is equivalent to True.
                 condition may be True, in which case all lines are processed.
 
-        For example, if ma is a Awk object,
+        For example, if `ma` is a Awk object,
         ```
         @ma.when(lambda line:line[0]=='$')
         def doline(line):
             print(line)
         ```
 
-        then `doline` will be triggered for every line starting with $,
-        and print it. Both the condition
-        passed to `on` and the decorated function can use parameters
-        FS, RS, nr, fnr, filename, line, fields, f0, f1, ..., and result.
+        then the `doline` action will be triggered for every line starting with $,
+        and print it.
+        
+        The default action is `lambda line:print(line)` so the above could be
+        simplified to
+        ```
+        ma.when(lambda line:line[0]=='$')()
+        ```
+
+        If the condition is `True`, as here:
+
+        ```
+        @ma.when(True)
+        def doline(line):
+            print(line)
+        ```
+        then the decorated action `doline` will be called for every line.
+
+        Both the condition
+        passed to `when` and the decorated function can use the same parameters
+        passed to `Awk.begin` and in addition:
+
+        * `line` - the entire line being processed
+        * `fields` - a list of fields parsed from the line
+        * `f0` - synonym for `line`, like awk's $0 variable
+        * `f1`, `f2`, ... - the individual parsed fields (which are None if
+           they don't exist) like awk's $1, $2, ... variables
+        * `nf` - the number of fields, equal to `len(fields)`
+        * `result` - the result of the condition passed to `when`
+
 
         """
         if type(condition) is bool:
-            condition = lambda:condition
-            
-        def conditional_decorator(f):
-            # introspect f to see what to pass it.
-            self.calls.append([_argwrap(condition), _argwrap(f)])
-            return f
+            condition = lambda: condition
 
-        return conditional_decorator
+        return self._condition_decorator(condition)
+
+    def find(self, string):
+        return self._condition_decorator(
+            lambda line: idx if (idx != line.find(string)) != -1 else False
+        )
 
     def match(self, patt):
         """decorator for functions to be called during file processing.
@@ -245,22 +292,13 @@ class Awk:
         ```
 
         then `doline` will be triggered and print every line starting with a capital letter.
-        The decorated function can use parameters
-        FS, RS, nr, fnr, filename, line, fields, f0, f1, ..., and result.
-
         `match(patt)` is equivalent to `when(lambda line:re.match(patt, line))`
+
+        The decorated function can use the same parameters as `Awk.when`
 
         """
         rex = re.compile(patt)
-
-        def conditional_decorator(f):
-            # introspect f to see what to pass it.
-            self.calls.append(
-                [_argwrap(lambda line: rex.match(line)), _argwrap(f)]
-            )
-            return f
-
-        return conditional_decorator
+        return self._condition_decorator(lambda line: rex.match(line))
 
     def search(self, patt):
         """decorator for functions to be called during file processing.
@@ -277,24 +315,16 @@ class Awk:
         ```
 
         then `doline` will be triggered for every line containing a capital letter.
-        The decorated function can use parameters
-        FS, RS, nr, fnr, filename, line, fields, f0, f1, ..., and result.
-
         `search(patt)` is equivalent to `when(lambda line:re.search(patt, line))`
+
+        The decorated function can use the same parameters as `Awk.when`
 
         """
         rex = re.compile(patt)
-
-        def conditional_decorator(f):
-            # introspect f to see what to pass it.
-            self.calls.append(
-                [_argwrap(lambda line: rex.search(line)), _argwrap(f)]
-            )
-            return f
-
-        return conditional_decorator
+        return self._condition_decorator(lambda line: rex.search(line))
 
     def __call__(self, *filenames, output=None, mode="wt"):
+        # run the awk over all the files
         @contextmanager
         def file_or_stdout(f):
             # __enter__

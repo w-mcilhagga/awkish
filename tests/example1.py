@@ -16,7 +16,7 @@ sys.path.append(os.getcwd())
 # actual example here
 
 import re
-from miniawk import Awk
+from awkish import Awk
 
 myawk = Awk(FS=re.compile(" +"))
 
@@ -43,7 +43,7 @@ def printend():
     # terminates a line
     print()
 
-@myawk.end
+myawk.end
 def end():
     print("\nend")
 
