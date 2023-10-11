@@ -25,8 +25,20 @@ def _argwrap(f):
     params = inspect.signature(f).parameters
     argnames = tuple(params)
 
+    def getvalue(d, name):
+        if name in d:
+            return d[name]
+        if params[name].default is not inspect._empty:
+            # we return the given default
+            return params[name].default
+        if re.match(r"f\d+$", name) and "line" in d:
+            # when processing lines, the default for fields is None
+            return None
+        # otherwise we raise an error
+        raise RuntimeError("parameter " + name + " does not have a value")
+
     def wrapped(d):
-        return f(*(d.get(name, params[name].default) for name in argnames))
+        return f(*(getvalue(d, name) for name in argnames))
 
     return wrapped
 
@@ -86,7 +98,7 @@ class Awk:
         fields = [g + v for (g, v) in zip(gaps, fields)]
         return [f.strip('"').replace('""', '"') for f in fields]
 
-    def __init__(self, FS=re.compile(" +"), RS=None):
+    def __init__(self, FS=re.compile(" +"), RS=""):
         """creates an instance of an awk-like program object
 
         Args:
@@ -99,8 +111,9 @@ class Awk:
                 call. Default is None. See open in the standard library for
                 more details.
 
-                Note that if RS is None, the line ends are stripped
-                from each line (different behaviour to open).
+                Note that if RS is '', the line ends are stripped
+                from each line (different behaviour to open). If RS is None
+                the line ends are kept but converted to '\n'
         Returns:
             a callable Awk object. This can be used to process files by calling it. For
         example
@@ -237,7 +250,7 @@ class Awk:
 
         then the `doline` action will be triggered for every line starting with $,
         and print it.
-        
+
         The default action is `lambda line:print(line)` so the above could be
         simplified to
         ```
@@ -361,14 +374,14 @@ class Awk:
         for action in self.begin_calls:
             action(proc_args)
         with open(fname, newline=self.RS) as file:
-            proc_args["fnr"] = 0
+            proc_args["nfr"] = 0
             for item in file:
-                proc_args["fnr"] += 1
+                proc_args["nfr"] += 1
                 proc_args["nr"] += 1
                 # copy args for this loop
                 args = {**proc_args}
                 # setup args['line']
-                if self.RS in [None, ""]:
+                if self.RS == "":
                     item = re.sub(r"(\r\n|\n)$", "", item)
                 else:
                     item = item.replace(self.RS, "")

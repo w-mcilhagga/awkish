@@ -35,42 +35,38 @@
 <dl>
 <dt id="awkish.Awk"><code class="flex name class">
 <span>class <span class="ident">Awk</span></span>
-<span>(</span><span>FS=re.compile(' +'), RS=None)</span>
+<span>(</span><span>FS=re.compile(' +'), RS='')</span>
 </code></dt>
 <dd>
 <div class="desc"><p>creates an instance of an awk-like program object</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>FS</code></strong></dt>
-<dd>the field separator. If a character, each line is split
-using string.split(FS). If a regular expression object,
-each line is split using FS.split(string). If a callable,
-it is passed the line and returns a list of fields. The default is
-to remove multiple spaces.</dd>
-<dt><strong><code>RS</code></strong></dt>
-<dd>
-<p>the record separator, used as the newline parameter to an open
-call. Default is None. See open in the standard library for
-more details.</p>
-<p>Note that if RS is None, the line ends are stripped
-from each line (different behaviour to open).</p>
-</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<p>a callable Awk object. This can be used to process files by calling it. For
-example</p>
-<pre><code>ma = Awk()
-# define actions
-ma(filename1, filename2, filename3)
+<pre><code>    Args:
+        FS: the field separator. If a character, each line is split
+            using string.split(FS). If a regular expression object,
+            each line is split using FS.split(string). If a callable,
+            it is passed the line and returns a list of fields. The default is
+            to remove multiple spaces.
+        RS: the record separator, used as the newline parameter to an open
+            call. Default is None. See open in the standard library for
+            more details.
+
+            Note that if RS is '', the line ends are stripped
+            from each line (different behaviour to open). If RS is None
+            the line ends are kept but converted to '
 </code></pre>
-<p>will create a Awk object and run it over the three files named in
+<p>'
+Returns:
+a callable Awk object. This can be used to process files by calling it. For
+example
+<code>ma = Awk()
+# define actions
+ma(filename1, filename2, filename3)</code>
+will create a Awk object and run it over the three files named in
 the call and dump any output to stdout. The parameters to the call are</p>
-<ul>
-<li><code>*filenames</code> - the names of the text files to process</li>
-<li><code>output</code> - (optiona) the name of the file to dump the program output</li>
-<li><code>mode</code> - (optional) when <code>output</code> is specified, the open mode (defaults
-to "wt")</li>
-</ul></div>
+<pre><code>    * `*filenames` - the names of the text files to process
+    * &lt;code&gt;output&lt;/code&gt; - (optiona) the name of the file to dump the program output
+    * &lt;code&gt;mode&lt;/code&gt; - (optional) when &lt;code&gt;output&lt;/code&gt; is specified, the open mode (defaults
+        to "wt")
+</code></pre></div>
 <h3>Static methods</h3>
 <dl>
 <dt id="awkish.Awk.CSV"><code class="name flex">
@@ -256,21 +252,21 @@ and print it.</p>
 simplified to</p>
 <pre><code>ma.when(lambda line:line[0]=='$')()
 </code></pre>
-<p>If the condition is <code>True</code>, as here</p>
+<p>If the condition is <code>True</code>, as here:</p>
 <pre><code>@ma.when(True)
 def doline(line):
     print(line)
 </code></pre>
-<p>then the decorated function <code>doline</code> will be called for every line.</p>
+<p>then the decorated action <code>doline</code> will be called for every line.</p>
 <p>Both the condition
 passed to <code>when</code> and the decorated function can use the same parameters
 passed to <code><a title="awkish.Awk.begin" href="#awkish.Awk.begin">Awk.begin()</a></code> and in addition:</p>
 <ul>
 <li><code>line</code> - the entire line being processed</li>
 <li><code>fields</code> - a list of fields parsed from the line</li>
-<li><code>f0</code> - synonym for <code>line</code>, like awk's $0 parameter</li>
+<li><code>f0</code> - synonym for <code>line</code>, like awk's $0 variable</li>
 <li><code>f1</code>, <code>f2</code>, &hellip; - the individual parsed fields (which are None if
-they don't exist)</li>
+they don't exist) like awk's $1, $2, &hellip; variables</li>
 <li><code>nf</code> - the number of fields, equal to <code>len(fields)</code></li>
 <li><code>result</code> - the result of the condition passed to <code>when</code></li>
 </ul></div>
