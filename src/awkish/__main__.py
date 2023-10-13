@@ -10,7 +10,7 @@ sys.path.append(os.getcwd())
 
 from awkish import Awk
 import argparse
-import importlib
+import runpy
 
 parser = argparse.ArgumentParser(
                     prog='ProgramName',
@@ -25,7 +25,8 @@ parser.add_argument('-o', '--output')
 if __name__=='__main__':
     args = parser.parse_args()
     # load argprog
-    prog = importlib.import_module(args.awkprog.replace('.py',''))
+    print(args.awkprog)
+    prog = runpy.runpath(args.awkprog)#.replace('.py',''))
     awk = None
     for name in prog.__dict__:
         if type(prog.__dict__[name]) is Awk:
