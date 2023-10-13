@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-awkish - Awk is a small class in pure python that does awk-like line processing.
+awkish - Awk is a python class that can be used to do line-by-line processing 
+of files, inspired by awk.
 """
 
-__version__ = "0.1"  # first release
 
 import inspect
 import re

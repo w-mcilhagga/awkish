@@ -1,1 +1,1 @@
-pdoc --force --html -c show_source_code=False -o docs src/awkish.py
+pdoc --force --html -c show_source_code=False -o docs src/awkish
