@@ -28,9 +28,9 @@ if __name__=='__main__':
     print(args.awkprog)
     prog = runpy.run_path(args.awkprog)#.replace('.py',''))
     awk = None
-    for name in prog.__dict__:
-        if type(prog.__dict__[name]) is Awk:
-            awk = prog.__dict__[name]
+    for name in prog:
+        if type(prog[name]) is Awk:
+            awk = prog[name]
             break
     if awk is None:
         print('No awk object defined')
