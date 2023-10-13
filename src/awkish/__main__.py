@@ -26,7 +26,7 @@ if __name__=='__main__':
     args = parser.parse_args()
     # load argprog
     print(args.awkprog)
-    prog = runpy.runpath(args.awkprog)#.replace('.py',''))
+    prog = runpy.run_path(args.awkprog)#.replace('.py',''))
     awk = None
     for name in prog.__dict__:
         if type(prog.__dict__[name]) is Awk:
