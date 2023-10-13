@@ -1,6 +1,4 @@
 """
-# awkish
-
 A python class that can be used to do line-by-line processing of files, inspired by awk.
 
 ## Install.
