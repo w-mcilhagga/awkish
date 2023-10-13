@@ -22,18 +22,16 @@ parser.add_argument('inputs', nargs='+')
 parser.add_argument('-o', '--output')
 
 
-if __name__=='__main__':
-    args = parser.parse_args()
-    # load argprog
-    print(args.awkprog)
-    prog = runpy.run_path(args.awkprog)#.replace('.py',''))
-    awk = None
-    for name in prog:
-        if type(prog[name]) is Awk:
-            awk = prog[name]
-            break
-    if awk is None:
-        print('No awk object defined')
-        sys.exit(1)
-    # run it on inputs
-    awk(*args.inputs, output=args.output)
+args = parser.parse_args()
+# load argprog
+prog = runpy.run_path(args.awkprog)
+awk = None
+for name in prog:
+    if type(prog[name]) is Awk:
+        awk = prog[name]
+        break
+if awk is None:
+    print('No awk object defined in '+args.awkprog)
+    sys.exit(1)
+# run it on inputs
+awk(*args.inputs, output=args.output)
