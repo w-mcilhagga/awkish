@@ -287,7 +287,7 @@ class Awk:
 
     def find(self, string):
         return self._condition_decorator(
-            lambda line: idx if (idx != line.find(string)) != -1 else False
+            lambda line: idx if (idx := line.find(string)) != -1 else False
         )
 
     def match(self, patt):

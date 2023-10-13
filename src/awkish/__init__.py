@@ -3,7 +3,9 @@ A python class that can be used to do line-by-line processing of files, inspired
 
 ## Install.
 
-Use pip when it's put there.
+```
+pip install awkish
+```
 
 ## Examples.
 
@@ -38,6 +40,7 @@ The action function `doline` is declared with a parameter `line` which is filled
 the entire contents of the line each time it is called.
 
 Finally, the awkish object is called with the name of the file to be processed. Output
+(if any)
 is sent to `stdout` by default, but if you want it redirected, you can add a named output parameter:
 `awk('filename.txt', output='out.txt')`
 
