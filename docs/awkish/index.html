@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
 <title>awkish API documentation</title>
-<meta name="description" content="A python class that can be used to do line-by-line processing of files, inspired by awk …" />
+<meta name="description" content="..include:: ../../readme.md" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -22,6 +22,7 @@
 <h1 class="title">Package <code>awkish</code></h1>
 </header>
 <section id="section-intro">
+<h1 id="awkish">awkish</h1>
 <p>A python class that can be used to do line-by-line processing of files, inspired by awk.</p>
 <h2 id="install">Install.</h2>
 <p>Use pip when it's put there.</p>
@@ -146,52 +147,60 @@ so <code>f</code> is used instead.)</p>
 <pre><code class="language-python">from awkish import Awk
 awk = Awk(FS=Awk.CSV)
 
-awk.find('John')()
+awk.when(Awk.find('John'))()
 
 awk('filename.txt')
 </code></pre>
-<p>The decorator <code>awk.find(pattern)</code> will look for the pattern in each line/record and return the index if it exists, and False otherwise.</p>
+<p>The static method <code>Awk.find(pattern)</code> returns a condition which looks for the pattern in each line/record and return the index if it exists, and False otherwise.</p>
 <p>If you want to print where
 the pattern is found, then you could do this:</p>
 <pre><code class="language-python">from awkish import Awk
 awk = Awk(FS=Awk.CSV)
 
-awk.find('John')(lambda result: print('John found at position', result))
-awk.find('John')()
+awk.when(Awk.find('John'))(lambda result: print('John found at position', result))
+awk.when(Awk.find('John'))()
 
 awk('filename.txt')
 </code></pre>
 <p>This will print two lines for each find: the first one says where the pattern was
 found (using the parameter <code>result</code>) and the second one prints the line. Actions are
 executed in the order they are defined.</p>
-<p>In this example, searching for John twice per line (which happens because the
-<code>find</code> decorator is used twice) isn't exactly efficient, but awkish is really more
+<p>In this example, searching for John twice per line isn't exactly efficient, but awkish is really more
 about convenience.</p>
 <p>If you'd rather use a regular
-expression, <code>awk.search(pattern)</code> will invoke <code>re.search(pattern, line)</code> for
+expression, <code>Awk.search(pattern)</code> will invoke <code>re.search(pattern, line)</code> for
 each line/record in the file, and do the associated action (in this case, the default).</p>
-<p>There is also a <code>match</code> decorator which invokes <code>re.match</code> instead.</p>
+<p>There is also an <code>Awk.match</code> static method which invokes <code>re.match</code> instead.</p>
 <p>The <code>result</code> parameter always contains the return value of the condition, when it
 succeeds (that is, when it doesn't return <code>False</code> or <code>None</code>). This allows you to
 pass information about the predicate to the action, and is particularly useful for
 <code>find</code>, <code>search</code>, and <code>match</code> decorators.</p>
 <h2 id="command-line-usage">Command-Line Usage.</h2>
-<p>When implemented it will allow you to do the following:</p>
+<p><code><a title="awkish" href="#awkish">awkish</a></code> can be invoked from the command line.</p>
 <ol>
-<li>Write the awk program as before, but leave out the call <code><a title="awkish.awk" href="awk.html">awkish.awk</a>(filename.txt)</code>, because
-the command line will provide the file name(s). Save your program in
+<li>Write the awk program as before, but leave out the call <code><a title="awkish.awk" href="awk.html">awkish.awk</a>(filename.txt)</code> to do the processing,
+because the command line will provide the file name(s). Save your program in
 e.g <code>awkprog.py</code></li>
-<li>Type <code>python -m awkish awkprog.py filename1 filename2 ... --output=out.txt</code> at the command line.</li>
+<li>Type <code>python -m awkish path/to/awkprog.py filename1 filename2 ... --output=out.txt</code> at the command line,
+or whatever is needed to invoke python in your environment.</li>
 </ol>
-<p>When invoked as a module, <code><a title="awkish" href="#awkish">awkish</a></code> imports the first file containing the program, finds the <code>Awk</code> object, and then calls it on the file list following.</p>
+<p>When invoked as a module, <code><a title="awkish" href="#awkish">awkish</a></code></p>
+<ol>
+<li>imports the first file containing the program and finds the <code>Awk</code> object defined therein</li>
+<li>Calls it on the file list following. If no outfiel is provided, it prints any output
+to the command line.</li>
+</ol>
+<p>Note that this usage doesn't let you specify additional arguments.'</p>
 </section>
 <section>
 <h2 class="section-title" id="header-submodules">Sub-modules</h2>
 <dl>
 <dt><code class="name"><a title="awkish.awk" href="awk.html">awkish.awk</a></code></dt>
 <dd>
-<div class="desc"><p>awkish - Awk is a python class that can be used to do line-by-line processing
-of files, inspired by awk.</p></div>
+<div class="desc"><p>Awk is a python class that can be used to do line-by-line processing
+of files, inspired by awk. The Awk class can be imported using
+```
+from awkish …</p></div>
 </dd>
 </dl>
 </section>
@@ -205,19 +214,7 @@ of files, inspired by awk.</p></div>
 <nav id="sidebar">
 <h1>Index</h1>
 <div class="toc">
-<ul>
-<li><a href="#install">Install.</a></li>
-<li><a href="#examples">Examples.</a><ul>
-<li><a href="#print-all-lines">Print all lines</a></li>
-<li><a href="#print-every-2nd-line">Print Every 2nd Line</a></li>
-<li><a href="#print-lines-longer-than-80-characters">Print lines longer than 80 characters</a></li>
-<li><a href="#print-the-longest-line">Print the longest line</a></li>
-<li><a href="#print-some-fields-of-a-csv-file">Print some fields of a CSV file.</a></li>
-<li><a href="#print-all-lines-which-have-some-target-text">Print all lines which have some target text</a></li>
-</ul>
-</li>
-<li><a href="#command-line-usage">Command-Line Usage.</a></li>
-</ul>
+<ul></ul>
 </div>
 <ul id="index">
 <li><h3><a href="#header-submodules">Sub-modules</a></h3>

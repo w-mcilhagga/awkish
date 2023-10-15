@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
 <title>awkish.awk API documentation</title>
-<meta name="description" content="awkish - Awk is a python class that can be used to do line-by-line processing
-of files, inspired by awk." />
+<meta name="description" content="Awk is a python class that can be used to do line-by-line processing
+of files, inspired by awk. The Awk class can be imported using
+```
+from awkish …" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -23,8 +25,10 @@ of files, inspired by awk." />
 <h1 class="title">Module <code>awkish.awk</code></h1>
 </header>
 <section id="section-intro">
-<p>awkish - Awk is a python class that can be used to do line-by-line processing
-of files, inspired by awk.</p>
+<p>Awk is a python class that can be used to do line-by-line processing
+of files, inspired by awk. The Awk class can be imported using</p>
+<pre><code>from awkish import Awk
+</code></pre>
 </section>
 <section>
 </section>
@@ -41,33 +45,46 @@ of files, inspired by awk.</p>
 </code></dt>
 <dd>
 <div class="desc"><p>creates an instance of an awk-like program object</p>
-<pre><code>    Args:
-        FS: the field separator. If a character, each line is split
-            using string.split(FS). If a regular expression object,
-            each line is split using FS.split(string). If a callable,
-            it is passed the line and returns a list of fields. The default is
-            to remove multiple spaces.
-        RS: the record separator, used as the newline parameter to an open
-            call. Default is None. See open in the standard library for
-            more details.
-
-            Note that if RS is '', the line ends are stripped
-            from each line (different behaviour to open). If RS is None
-            the line ends are kept but converted to '
-</code></pre>
-<p>'
-Returns:
-a callable Awk object. This can be used to process files by calling it. For
-example
-<code>ma = Awk()
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>FS</code></strong></dt>
+<dd>the field separator. If a character, each line is split
+using string.split(FS). If a regular expression object,
+each line is split using FS.split(string). If a callable,
+it is passed the line and returns a list of fields. The default is
+to remove multiple spaces.</dd>
+<dt><strong><code>RS</code></strong></dt>
+<dd>
+<p>the record separator, used as the newline parameter to an open
+call. Default is None. See open in the standard library for
+more details.</p>
+<p>Note that if RS is '', the line ends are stripped
+from each line (different behaviour to open). If RS is None
+the line ends are kept but converted to <code>\n</code></p>
+</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>a callable Awk object. This can be used to process files by calling it. For
+example</p>
+<pre><code>from awkish import Awk
+a = Awk()
 # define actions
-ma(filename1, filename2, filename3)</code>
-will create a Awk object and run it over the three files named in
+...
+# call awk
+ma(filename1, filename2, filename3)
+</code></pre>
+<p>will create a Awk object and run it over the three files named in
 the call and dump any output to stdout. The parameters to the call are</p>
-<pre><code>    * `*filenames` - the names of the text files to process
-    * &lt;code&gt;output&lt;/code&gt; - (optiona) the name of the file to dump the program output
-    * &lt;code&gt;mode&lt;/code&gt; - (optional) when &lt;code&gt;output&lt;/code&gt; is specified, the open mode (defaults
-        to "wt")
+<ul>
+<li><code>*filenames</code> - the names of the text files to process</li>
+<li><code>output</code> - (optional) the name of the file to dump the program output</li>
+<li><code>mode</code> - (optional) when <code>output</code> is specified, the open mode (defaults
+to "wt")</li>
+<li><code>**kwargs</code> - (optional) named args which can be passed to actions</li>
+</ul>
+<p>Thus, to put the output in <code>out.txt</code> and define an action argument x,
+we would write</p>
+<pre><code>ma(filename1, filename2, filename3, output=&quot;out.txt&quot;, x=5)
 </code></pre></div>
 <h3>Static methods</h3>
 <dl>
@@ -75,7 +92,7 @@ the call and dump any output to stdout. The parameters to the call are</p>
 <span>def <span class="ident">CSV</span></span>(<span>line, strict=True)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>a field seperator function, which can be used as the FS parameter
+<div class="desc"><p>a field separator function, which can be used as the FS parameter
 when creating a Awk object. This is <strong>not</strong> the same as setting FS to
 a comma.</p>
 <h2 id="args">Args</h2>
@@ -84,10 +101,10 @@ a comma.</p>
 <dd>a string to be interpreted as one line of a CSV file.</dd>
 <dt><strong><code>strict</code></strong></dt>
 <dd>boolean to decide whether to raise an exception if the
-line doesn't conform to RFC4180</dd>
+line doesn't conform to RFC4180, default True</dd>
 </dl>
 <h2 id="returns">Returns</h2>
-<p>a list of fields as strings. Escaped strings have their quotes
+<p>a list of field strings. Escaped fields have quotes
 removed and double quotes converted to single quotes.
 This mostly follows RFC4180 except that quoted fields cannot contain
 line breaks, as these are used by the file reader to break the file
@@ -102,6 +119,62 @@ has to be wrapped in a lambda, e.g.</p>
 <h2 id="raises">Raises</h2>
 <p>ValueError when strict is True and line isn't RFC4180 compatible</p></div>
 </dd>
+<dt id="awkish.awk.Awk.find"><code class="name flex">
+<span>def <span class="ident">find</span></span>(<span>patt)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>a static method to create a condition function for finding a pattern string in a line</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>patt</code></strong></dt>
+<dd>the pattern to search for</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>a condition function which invokes line.find(patt). If the
+pattern is found, it returns the index; otherwise it returns false
+For example, if <code>a</code> is an Awk object, then</p>
+<pre><code>a.when(Awk.find(&quot;abc&quot;))
+def doline(line):
+    ...
+</code></pre>
+<p>the decorated function <code>doline</code> will be called every time the line
+contains the substring <code>"abc"</code>.</p></div>
+</dd>
+<dt id="awkish.awk.Awk.match"><code class="name flex">
+<span>def <span class="ident">match</span></span>(<span>patt)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>a static method to create a condition function for matching a regex pattern in a line</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>patt</code></strong></dt>
+<dd>the pattern to search for</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>a condition function which invokes re.match(patt, line). It
+returns the result of the match
+For example, if <code>a</code> is an Awk object, then</p>
+<pre><code>a.when(Awk.match(&quot;a+&quot;))
+def doline(line):
+    ...
+</code></pre>
+<p>the decorated function <code>doline</code> will be called every time
+<code>re.match("a+",line)</code> succeeds.</p></div>
+</dd>
+<dt id="awkish.awk.Awk.search"><code class="name flex">
+<span>def <span class="ident">search</span></span>(<span>patt)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>a static method to create a condition function for finding a regex pattern in a line</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>patt</code></strong></dt>
+<dd>the pattern to search for</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>a condition function which invokes re.search(patt, line). It
+returns the result of the match</p></div>
+</dd>
 </dl>
 <h3>Methods</h3>
 <dl>
@@ -110,54 +183,118 @@ has to be wrapped in a lambda, e.g.</p>
 </code></dt>
 <dd>
 <div class="desc"><p>decorator for functions to be called before each file
-being processed</p>
-<p>For example, if <code>ma</code> is a Awk object,</p>
-<pre><code>@ma.begin
+is processed. This
+does not work on methods.</p>
+<p>For example, if <code>a</code> is a Awk object,</p>
+<pre><code>@a.begin
 def startfile():
     global x
     x = {}
 </code></pre>
-<p>then the startfile function will be called before processing any file.
-Multiple functions can be decorated by beginfile and will be executed in turn
+<p>then the startfile function will be called before processing any and every file.
+Multiple functions can be decorated by <code>begin</code> and will be executed in turn
 before processing any file.
-Any such decorated function can take the same arguments as <code><a title="awkish.awk.Awk.beginjob" href="#awkish.awk.Awk.beginjob">Awk.beginjob()</a></code> and:</p>
+A function decorated by <code>begin</code> can take the following arguments:</p>
 <ul>
-<li><code>filename</code> - the name fo the file being processed</li>
+<li><code>self</code> - the awk object that is running</li>
+<li><code>nr</code> - the number of records read in the job so far.</li>
+<li><code>filename</code> - the name of the file being processed</li>
 <li><code>nfr</code> - the number of records read in the file, which will be zero
 when the function is called.</li>
-</ul></div>
+</ul>
+<p>as well as any **kwargs arguments passed to the awk call.</p></div>
 </dd>
 <dt id="awkish.awk.Awk.beginjob"><code class="name flex">
 <span>def <span class="ident">beginjob</span></span>(<span>self, f)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>decorator for functions to be called before any files
-are processed</p>
-<p>For example, if <code>ma</code> is a Awk object,</p>
-<pre><code>@ma.beginjob
+are processed. This
+does not work on methods.</p>
+<p>For example, if <code>a</code> is a Awk object,</p>
+<pre><code>@a.beginjob
 def setup():
     global x
     x = {}
 </code></pre>
 <p>then the setup function will be called at the start of processing.
-Multiple functions can be decorated by begin and will be executed in turn
+Multiple functions can be decorated by <code>beginjob</code> and will be executed in turn
 at the start of processing.
-Any such decorated function can take any of the following arguments:</p>
+A function decorated by <code>beginjob</code> can take any of the following arguments:</p>
 <ul>
-<li><code>FS</code> - the file seperator used when the Awk object was created</li>
-<li><code>RS</code> - the record separator used when the Awk object was created</li>
+<li><code>self</code> - the awk object that is running</li>
 <li><code>nr</code> - the number of records read in the job, which be zero
 when the function is called.</li>
-</ul></div>
+</ul>
+<p>as well as any **kwargs arguments passed to the awk call.</p>
+<p>An action that has a parameter <code>self</code> is a pseudo-method of the awk
+object, since when the action is called, <code>self</code> is replaced by the awk
+object. You could use <code>self</code> to, for example,</p>
+<ul>
+<li>change <code>self.FS</code> or <code>self.RS</code> as needed</li>
+<li>add or change properties local to the processing.</li>
+</ul>
+<p>Note that the <code>self</code> parameter does not have to be the first one, because
+regular python binding does not take place.</p></div>
+</dd>
+<dt id="awkish.awk.Awk.between"><code class="name flex">
+<span>def <span class="ident">between</span></span>(<span>self, on_condition, off_condition)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>a range-matching decorator which selects all lines between an on conditoon
+and an off condition occurring. This does not work on methods.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>on_condition</code></strong></dt>
+<dd>a boolean or callable which determines whether the current line
+starts the range. Any value
+returned other than False or None is equivalent to True.
+condition may be True, in which case all lines are processed.</dd>
+<dt><strong><code>off_condition</code></strong></dt>
+<dd>a boolean or callable which determines whether the current line
+ends the range. Any value
+returned other than False or None is equivalent to True.
+condition may be True, in which case all lines are processed.
+The line ending the range is still processed, because in awk, ranges
+are inclusive.</dd>
+</dl>
+<p>For example, if <code>a</code> is a Awk object,</p>
+<pre><code>@a.between(lambda nf:nf==5, lambda nf:nf==10)
+def doline(line):
+    print(line)
+</code></pre>
+<p>then the <code>doline</code> action will be triggered for every line between the 5th and 10th inclusive.</p>
+<p>This is <strong>not</strong> the same as <code>a.when(lambda nf: nf&gt;=5 and nf&lt;=10)</code>. The <code>between</code>
+will start processing when it finds a line with exactly 5 fields and end processing when it finds a line
+with exactly 10 fields. The <code>when</code> will process all lines with between 5 and 10 fields.</p>
+<p>Both the conditions
+passed to <code>between</code> and the decorated function can use the following parameters:</p>
+<ul>
+<li><code>self</code> - the awk object that is running</li>
+<li><code>nr</code> - the number of records read in the job so far.</li>
+<li><code>filename</code> - the name of the file being processed</li>
+<li><code>nfr</code> - the number of records read in the file so far.</li>
+<li><code>line</code> - the entire line being processed</li>
+<li><code>fields</code> - a list of fields parsed from the line</li>
+<li><code>f0</code> - synonym for <code>line</code>, like awk's $0 variable</li>
+<li><code>f1</code>, <code>f2</code>, &hellip; - the individual parsed fields (which are None if
+they don't exist) like awk's $1, $2, &hellip; variables</li>
+<li><code>nf</code> - the number of fields, equal to <code>len(fields)</code></li>
+<li><code>result</code> - the result of the condition passed to <code>range</code>. When
+the on_condition is first valid, result is the value.
+When the off-condition is valid, result is the value.
+In between, the result is True</li>
+</ul>
+<p>as well as any **kwargs arguments passed to the awk call.</p></div>
 </dd>
 <dt id="awkish.awk.Awk.end"><code class="name flex">
 <span>def <span class="ident">end</span></span>(<span>self, f)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>decorator for functions to be called after each file
-being processed</p>
-<p>For example, if <code>ma</code> is a Awk object,</p>
-<pre><code>@ma.end
+being processed. This does not work on methods.</p>
+<p>For example, if <code>a</code> is a Awk object,</p>
+<pre><code>@a.end
 def afterfile():
     global x
     x = {}
@@ -165,16 +302,16 @@ def afterfile():
 <p>then the afterfile function will be after processing each file.
 Multiple functions can be decorated by endfile and will be executed in turn
 after processing any file.
-Any such decorated function can use the same arguments as <code><a title="awkish.awk.Awk.begin" href="#awkish.awk.Awk.begin">Awk.begin()</a></code>.</p></div>
+A function decorated by <code>end</code> can take the same arguments as <code><a title="awkish.awk.Awk.begin" href="#awkish.awk.Awk.begin">Awk.begin()</a></code>.</p></div>
 </dd>
 <dt id="awkish.awk.Awk.endjob"><code class="name flex">
 <span>def <span class="ident">endjob</span></span>(<span>self, f)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>decorator for functions to be called after all files
-are processed</p>
-<p>For example, if <code>ma</code> is a Awk object,</p>
-<pre><code>@ma.endjob
+are processed. This does not work on methods.</p>
+<p>For example, if <code>a</code> is a Awk object,</p>
+<pre><code>@a.endjob
 def cleanup():
     global x
     x = {}
@@ -182,69 +319,25 @@ def cleanup():
 <p>then the cleanup function will be called at the end of processing.
 Multiple functions can be decorated by end and will be executed in turn
 at the end of processing.
-Any such decorated function can take thes same arguments as <code><a title="awkish.awk.Awk.beginjob" href="#awkish.awk.Awk.beginjob">Awk.beginjob()</a></code>.</p></div>
-</dd>
-<dt id="awkish.awk.Awk.find"><code class="name flex">
-<span>def <span class="ident">find</span></span>(<span>self, string)</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="awkish.awk.Awk.match"><code class="name flex">
-<span>def <span class="ident">match</span></span>(<span>self, patt)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>decorator for functions to be called during file processing.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>patt</code></strong></dt>
-<dd>the regular expression pattern to match to the start of
-the current line</dd>
-</dl>
-<p>For example, if ma is a Awk object,</p>
-<pre><code>@ma.match(r'[A-Z]')
-def doline(line):
-    print(line)
-</code></pre>
-<p>then <code>doline</code> will be triggered and print every line starting with a capital letter.
-<code>match(patt)</code> is equivalent to <code>when(lambda line:re.match(patt, line))</code></p>
-<p>The decorated function can use the same parameters as <code><a title="awkish.awk.Awk.when" href="#awkish.awk.Awk.when">Awk.when()</a></code></p></div>
-</dd>
-<dt id="awkish.awk.Awk.search"><code class="name flex">
-<span>def <span class="ident">search</span></span>(<span>self, patt)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>decorator for functions to be called during file processing.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>patt</code></strong></dt>
-<dd>the regular expression pattern to match to anywhere in
-the current line</dd>
-</dl>
-<p>For example, if ma is a Awk object,</p>
-<pre><code>@ma.search(r'[A-Z]')
-def doline(line):
-    print(line)
-</code></pre>
-<p>then <code>doline</code> will be triggered for every line containing a capital letter.
-<code>search(patt)</code> is equivalent to <code>when(lambda line:re.search(patt, line))</code></p>
-<p>The decorated function can use the same parameters as <code><a title="awkish.awk.Awk.when" href="#awkish.awk.Awk.when">Awk.when()</a></code></p></div>
+A function decorated by <code>endjob</code> can take thes same arguments as one
+decorated by <code><a title="awkish.awk.Awk.beginjob" href="#awkish.awk.Awk.beginjob">Awk.beginjob()</a></code>.</p></div>
 </dd>
 <dt id="awkish.awk.Awk.when"><code class="name flex">
 <span>def <span class="ident">when</span></span>(<span>self, condition)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>decorator for functions to be called during file processing.</p>
+<div class="desc"><p>decorator for functions to be called during file processing. This
+does not work on methods.</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>condition</code></strong></dt>
 <dd>a boolean or callable which determines whether the current line
-should be passed to the decorated function. Anything value
+should be passed to the decorated function. Any value
 returned other than False or None is equivalent to True.
-condition may be True, in which case all lines are processed.</dd>
+condition may be the boolean <code>True</code>, in which case all lines are processed.</dd>
 </dl>
-<p>For example, if <code>ma</code> is a Awk object,</p>
-<pre><code>@ma.when(lambda line:line[0]=='$')
+<p>For example, if <code>a</code> is a Awk object,</p>
+<pre><code>@a.when(lambda line:line[0]=='$')
 def doline(line):
     print(line)
 </code></pre>
@@ -252,18 +345,21 @@ def doline(line):
 and print it.</p>
 <p>The default action is <code>lambda line:print(line)</code> so the above could be
 simplified to</p>
-<pre><code>ma.when(lambda line:line[0]=='$')()
+<pre><code>a.when(lambda line:line[0]=='$')()
 </code></pre>
 <p>If the condition is <code>True</code>, as here:</p>
-<pre><code>@ma.when(True)
+<pre><code>@a.when(True)
 def doline(line):
     print(line)
 </code></pre>
 <p>then the decorated action <code>doline</code> will be called for every line.</p>
 <p>Both the condition
-passed to <code>when</code> and the decorated function can use the same parameters
-passed to <code><a title="awkish.awk.Awk.begin" href="#awkish.awk.Awk.begin">Awk.begin()</a></code> and in addition:</p>
+passed to <code>when</code> and the decorated function can use the following parameters:</p>
 <ul>
+<li><code>self</code> - the awk object that is running</li>
+<li><code>nr</code> - the number of records read in the job so far.</li>
+<li><code>filename</code> - the name of the file being processed</li>
+<li><code>nfr</code> - the number of records read in the file so far.</li>
 <li><code>line</code> - the entire line being processed</li>
 <li><code>fields</code> - a list of fields parsed from the line</li>
 <li><code>f0</code> - synonym for <code>line</code>, like awk's $0 variable</li>
@@ -271,7 +367,8 @@ passed to <code><a title="awkish.awk.Awk.begin" href="#awkish.awk.Awk.begin">Awk
 they don't exist) like awk's $1, $2, &hellip; variables</li>
 <li><code>nf</code> - the number of fields, equal to <code>len(fields)</code></li>
 <li><code>result</code> - the result of the condition passed to <code>when</code></li>
-</ul></div>
+</ul>
+<p>as well as any **kwargs arguments passed to the awk call.</p></div>
 </dd>
 </dl>
 </dd>
@@ -297,6 +394,7 @@ they don't exist) like awk's $1, $2, &hellip; variables</li>
 <li><code><a title="awkish.awk.Awk.CSV" href="#awkish.awk.Awk.CSV">CSV</a></code></li>
 <li><code><a title="awkish.awk.Awk.begin" href="#awkish.awk.Awk.begin">begin</a></code></li>
 <li><code><a title="awkish.awk.Awk.beginjob" href="#awkish.awk.Awk.beginjob">beginjob</a></code></li>
+<li><code><a title="awkish.awk.Awk.between" href="#awkish.awk.Awk.between">between</a></code></li>
 <li><code><a title="awkish.awk.Awk.end" href="#awkish.awk.Awk.end">end</a></code></li>
 <li><code><a title="awkish.awk.Awk.endjob" href="#awkish.awk.Awk.endjob">endjob</a></code></li>
 <li><code><a title="awkish.awk.Awk.find" href="#awkish.awk.Awk.find">find</a></code></li>

@@ -158,12 +158,12 @@ so `f` is used instead.)
 from awkish import Awk
 awk = Awk(FS=Awk.CSV)
 
-awk.find('John')()
+awk.when(Awk.find('John'))()
 
 awk('filename.txt')
 ```
 
-The decorator `awk.find(pattern)` will look for the pattern in each line/record and return the index if it exists, and False otherwise.
+The static method `Awk.find(pattern)` returns a condition which looks for the pattern in each line/record and return the index if it exists, and False otherwise.
 
 If you want to print where
 the pattern is found, then you could do this:
@@ -172,8 +172,8 @@ the pattern is found, then you could do this:
 from awkish import Awk
 awk = Awk(FS=Awk.CSV)
 
-awk.find('John')(lambda result: print('John found at position', result))
-awk.find('John')()
+awk.when(Awk.find('John'))(lambda result: print('John found at position', result))
+awk.when(Awk.find('John'))()
 
 awk('filename.txt')
 ```
@@ -182,15 +182,14 @@ This will print two lines for each find: the first one says where the pattern wa
 found (using the parameter `result`) and the second one prints the line. Actions are
 executed in the order they are defined.
 
-In this example, searching for John twice per line (which happens because the
-`find` decorator is used twice) isn't exactly efficient, but awkish is really more
+In this example, searching for John twice per line isn't exactly efficient, but awkish is really more
 about convenience.
 
 If you'd rather use a regular
-expression, `awk.search(pattern)` will invoke `re.search(pattern, line)` for
+expression, `Awk.search(pattern)` will invoke `re.search(pattern, line)` for
 each line/record in the file, and do the associated action (in this case, the default).
 
-There is also a `match` decorator which invokes `re.match` instead.
+There is also an `Awk.match` static method which invokes `re.match` instead.
 
 The `result` parameter always contains the return value of the condition, when it
 succeeds (that is, when it doesn't return `False` or `None`). This allows you to
@@ -199,11 +198,18 @@ pass information about the predicate to the action, and is particularly useful f
 
 ## Command-Line Usage.
 
-When implemented it will allow you to do the following:
+`awkish` can be invoked from the command line.
 
-1. Write the awk program as before, but leave out the call `awk(filename.txt)`, because
-   the command line will provide the file name(s). Save your program in
+1. Write the awk program as before, but leave out the call `awk(filename.txt)` to do the processing,
+   because the command line will provide the file name(s). Save your program in
    e.g `awkprog.py`
-2. Type `python -m awkish awkprog.py filename1 filename2 ... --output=out.txt` at the command line.
+2. Type `python -m awkish path/to/awkprog.py filename1 filename2 ... --output=out.txt` at the command line,
+   or whatever is needed to invoke python in your environment.
 
-When invoked as a module, `awkish` imports the first file containing the program, finds the `Awk` object, and then calls it on the file list following.
+When invoked as a module, `awkish`
+
+1. imports the first file containing the program and finds the `Awk` object defined therein
+2. Calls it on the file list following. If no outfiel is provided, it prints any output
+   to the command line.
+
+Note that this usage doesn't let you specify additional arguments.'
