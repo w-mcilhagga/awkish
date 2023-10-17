@@ -26,8 +26,8 @@ awk = Awk()
 
 # 2. define conditions and actions
 @awk.when(True)
-def doline(line):
-    print(line)
+def doline(self):
+    print(self.line, end='')
 
 # 3. run it on a file
 awk('filename.txt')
@@ -35,8 +35,9 @@ awk('filename.txt')
 
 The condition decorator `@awk.when(True)` indicates that the decorated action should be called for every line.
 
-The action function `doline` is declared with a parameter `line` which is filled in with
-the entire contents of the line each time it is called.
+The action function `doline` is declared with a parameter `self` which has varius
+attributes set when called; one is `line` which is the entire line including endline
+markers.
 
 Finally, the awkish object is called with the name of the file to be processed. Output
 is sent to `stdout` by default, but if you want it redirected, you can add a named output parameter:
@@ -54,7 +55,7 @@ awk('filename.txt')
 ```
 
 When the condition decorator is called as a normal function, the action defaults to
-`lambda line:print(line)` much like awk itself.
+`lambda self:self.print(self.line)` much like awk itself.
 This is the idiom we'll use below, when we can.
 
 ### Print Every 2nd Line
@@ -66,15 +67,15 @@ from awkish import Awk
 awk = Awk()
 
 # 2. define conditions and actions
-awk.when(lambda nfr: nfr%2==0)()
+awk.when(lambda self: self.nfr%2==0)()
 
 # 3. run it on a file
 awk('filename.txt')
 ```
 
 The condition decorator `@awk.when(...)` will invoke the default decorated action
-`lambda line:print(line)` every time the predicate
-is true. Here the predicate `lambda nfr: nfr%2==0` is declared with a parameter `nfr`
+`lambda self:print(self.line)` every time the predicate
+is true. Here the predicate `lambda self: self.nfr%2==0` uses the attribute `nfr`
 which is filled in with the **n**umber of **f**ile **r**ecords that have been processed.
 
 ### Print lines longer than 80 characters
@@ -86,7 +87,7 @@ from awkish import Awk
 awk = Awk()
 
 # 2. define conditions and actions
-awk.when(lambda line: len(line)>80)()
+awk.when(lambda self: self.length>80)()
 
 # 3. run it on a file
 awk('filename.txt')
@@ -97,32 +98,31 @@ awk('filename.txt')
 ```python
 from awkish import Awk
 
-# globals to track line length
-linelen = -1
-longest_line = None
-
 # 1. create the awk object
 longest = Awk()
 
-# 2. define conditions and actions
 
-@longest.when(lambda line:len(line)>linelen)
-def savelongest(line):
-    global linelen, longest_line
-    linelen = len(line)
-    longest_line = line
+# 2. define conditions and actions
+@logest.begin
+def startup(self);
+    longest.linelen = -1
+    longest.longest_line = None
+
+@longest.when(lambda self:self.length>linelen)
+def savelongest(self):
+    self.linelen = self.length
+    self.longest_line = self.line
 
 @longest.end
-def reportlongest():
-    global linelen, longest_line
-    print(f'The longest line is {linelen} characters long:')
-    print(longest_line)
+def reportlongest(self):
+    print(f'The longest line is {selflinelen} characters long:')
+    print(self.longest_line)
 
 # 3. run it on a file
 longest('filename.txt')
 ```
 
-This example uses globals to keep track of the line and length. The decorator
+The decorator `longest.begin` initializes some attributes of the awk object. The decorator
 `longest.end` will run the decorated function after the file has been
 processed. If you pass multiple filenames to the awk object, the function(s) decorated
 by `end` will run after each file. To run functions after all files, use the `endjob` decorator.
@@ -135,10 +135,10 @@ There are also `begin` and `beginjob` decorators.
 from awkish import Awk
 
 # 1. create the awk object
-awk = Awk(FS=Awk.CSV)
+awk = Awk(FS=Awk.CSV, OFS=',', ORS='\n')
 
 # 2. define conditions and actions
-awk.when(True)(lambda f1, f3:print(f1+','+f3))
+awk.when(True)(lambda self: self.print(self.f1,self.f3))
 
 # 3. run it on a file
 awk('filename.txt')
@@ -147,7 +147,7 @@ awk('filename.txt')
 In this case the awk field seperator `FS` is set to `Awk.CSV` which is a function that
 parses records according to RFC4180 (except that, since records/lines are parsed first, quoted fields can't include line breaks). Just using `FS=','` won't achieve this.
 
-The lambda function is declared with two parameters `f1` and `f3` which are filled in
+The lambda function uses two attributes `f1` and `f3` which are filled in
 with the (string) values of the first and third fields in the record. These correspond
 to `$1` and `$3` in awk proper (but `$` isn't a legal identifier character in python,
 so `f` is used instead.)
@@ -172,7 +172,7 @@ the pattern is found, then you could do this:
 from awkish import Awk
 awk = Awk(FS=Awk.CSV)
 
-awk.when(Awk.find('John'))(lambda result: print('John found at position', result))
+awk.when(Awk.find('John'))(lambda self: print('John found at position', self.result))
 awk.when(Awk.find('John'))()
 
 awk('filename.txt')
@@ -182,8 +182,7 @@ This will print two lines for each find: the first one says where the pattern wa
 found (using the parameter `result`) and the second one prints the line. Actions are
 executed in the order they are defined.
 
-In this example, searching for John twice per line isn't exactly efficient, but awkish is really more
-about convenience.
+In this example, searching for John twice per line isn't exactly efficient, but awkish is really more about convenience.
 
 If you'd rather use a regular
 expression, `Awk.search(pattern)` will invoke `re.search(pattern, line)` for

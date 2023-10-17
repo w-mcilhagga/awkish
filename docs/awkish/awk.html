@@ -41,7 +41,7 @@ of files, inspired by awk. The Awk class can be imported using</p>
 <dl>
 <dt id="awkish.awk.Awk"><code class="flex name class">
 <span>class <span class="ident">Awk</span></span>
-<span>(</span><span>FS=re.compile(' +'), RS='')</span>
+<span>(</span><span>FS=re.compile(' +'), OFS=' ', RS='', ORS='\n')</span>
 </code></dt>
 <dd>
 <div class="desc"><p>creates an instance of an awk-like program object</p>
@@ -53,15 +53,14 @@ using string.split(FS). If a regular expression object,
 each line is split using FS.split(string). If a callable,
 it is passed the line and returns a list of fields. The default is
 to remove multiple spaces.</dd>
+<dt><strong><code>OFS</code></strong></dt>
+<dd>the output field separator</dd>
 <dt><strong><code>RS</code></strong></dt>
-<dd>
-<p>the record separator, used as the newline parameter to an open
-call. Default is None. See open in the standard library for
-more details.</p>
-<p>Note that if RS is '', the line ends are stripped
-from each line (different behaviour to open). If RS is None
-the line ends are kept but converted to <code>\n</code></p>
-</dd>
+<dd>the record separator, used as the newline parameter to an <code>open</code>
+call. Default is '' which does not translate newlines when reading
+or writing.</dd>
+<dt><strong><code>ORS</code></strong></dt>
+<dd>output record separator</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <p>a callable Awk object. This can be used to process files by calling it. For
@@ -80,11 +79,10 @@ the call and dump any output to stdout. The parameters to the call are</p>
 <li><code>output</code> - (optional) the name of the file to dump the program output</li>
 <li><code>mode</code> - (optional) when <code>output</code> is specified, the open mode (defaults
 to "wt")</li>
-<li><code>**kwargs</code> - (optional) named args which can be passed to actions</li>
 </ul>
 <p>Thus, to put the output in <code>out.txt</code> and define an action argument x,
 we would write</p>
-<pre><code>ma(filename1, filename2, filename3, output=&quot;out.txt&quot;, x=5)
+<pre><code>ma(filename1, filename2, filename3, output=&quot;out.txt&quot;)
 </code></pre></div>
 <h3>Static methods</h3>
 <dl>
@@ -134,7 +132,7 @@ has to be wrapped in a lambda, e.g.</p>
 pattern is found, it returns the index; otherwise it returns false
 For example, if <code>a</code> is an Awk object, then</p>
 <pre><code>a.when(Awk.find(&quot;abc&quot;))
-def doline(line):
+def doline(self):
     ...
 </code></pre>
 <p>the decorated function <code>doline</code> will be called every time the line
@@ -155,7 +153,7 @@ contains the substring <code>"abc"</code>.</p></div>
 returns the result of the match
 For example, if <code>a</code> is an Awk object, then</p>
 <pre><code>a.when(Awk.match(&quot;a+&quot;))
-def doline(line):
+def doline(self):
     ...
 </code></pre>
 <p>the decorated function <code>doline</code> will be called every time
@@ -187,22 +185,20 @@ is processed. This
 does not work on methods.</p>
 <p>For example, if <code>a</code> is a Awk object,</p>
 <pre><code>@a.begin
-def startfile():
-    global x
-    x = {}
+def startfile(self):
+    self.x = {}
 </code></pre>
 <p>then the startfile function will be called before processing any and every file.
 Multiple functions can be decorated by <code>begin</code> and will be executed in turn
 before processing any file.
-A function decorated by <code>begin</code> can take the following arguments:</p>
+The optional <code>self</code> argument to beginjob actions is the awk object with
+the following additional properties:</p>
 <ul>
-<li><code>self</code> - the awk object that is running</li>
 <li><code>nr</code> - the number of records read in the job so far.</li>
 <li><code>filename</code> - the name of the file being processed</li>
 <li><code>nfr</code> - the number of records read in the file, which will be zero
 when the function is called.</li>
-</ul>
-<p>as well as any **kwargs arguments passed to the awk call.</p></div>
+</ul></div>
 </dd>
 <dt id="awkish.awk.Awk.beginjob"><code class="name flex">
 <span>def <span class="ident">beginjob</span></span>(<span>self, f)</span>
@@ -213,29 +209,18 @@ are processed. This
 does not work on methods.</p>
 <p>For example, if <code>a</code> is a Awk object,</p>
 <pre><code>@a.beginjob
-def setup():
-    global x
-    x = {}
+def setup(self):
+    self.x = {}
 </code></pre>
 <p>then the setup function will be called at the start of processing.
 Multiple functions can be decorated by <code>beginjob</code> and will be executed in turn
 at the start of processing.
-A function decorated by <code>beginjob</code> can take any of the following arguments:</p>
+The optional <code>self</code> argument to beginjob actions is the awk object with
+the following additional properties:</p>
 <ul>
-<li><code>self</code> - the awk object that is running</li>
 <li><code>nr</code> - the number of records read in the job, which be zero
 when the function is called.</li>
-</ul>
-<p>as well as any **kwargs arguments passed to the awk call.</p>
-<p>An action that has a parameter <code>self</code> is a pseudo-method of the awk
-object, since when the action is called, <code>self</code> is replaced by the awk
-object. You could use <code>self</code> to, for example,</p>
-<ul>
-<li>change <code>self.FS</code> or <code>self.RS</code> as needed</li>
-<li>add or change properties local to the processing.</li>
-</ul>
-<p>Note that the <code>self</code> parameter does not have to be the first one, because
-regular python binding does not take place.</p></div>
+</ul></div>
 </dd>
 <dt id="awkish.awk.Awk.between"><code class="name flex">
 <span>def <span class="ident">between</span></span>(<span>self, on_condition, off_condition)</span>
@@ -259,22 +244,22 @@ The line ending the range is still processed, because in awk, ranges
 are inclusive.</dd>
 </dl>
 <p>For example, if <code>a</code> is a Awk object,</p>
-<pre><code>@a.between(lambda nf:nf==5, lambda nf:nf==10)
-def doline(line):
-    print(line)
+<pre><code>@a.between(lambda self:self.nf==5, lambda self:self.nf==10)
+def doline(self):
+    print(self.line, end='')
 </code></pre>
 <p>then the <code>doline</code> action will be triggered for every line between the 5th and 10th inclusive.</p>
-<p>This is <strong>not</strong> the same as <code>a.when(lambda nf: nf&gt;=5 and nf&lt;=10)</code>. The <code>between</code>
+<p>This is <strong>not</strong> the same as <code>a.when(lambda self: self.nf&gt;=5 and self.nf&lt;=10)</code>. The <code>between</code>
 will start processing when it finds a line with exactly 5 fields and end processing when it finds a line
 with exactly 10 fields. The <code>when</code> will process all lines with between 5 and 10 fields.</p>
-<p>Both the conditions
-passed to <code>between</code> and the decorated function can use the following parameters:</p>
+<p>The optional <code>self</code> argument to when actions and the condition is the awk object with
+the following additional properties:</p>
 <ul>
-<li><code>self</code> - the awk object that is running</li>
 <li><code>nr</code> - the number of records read in the job so far.</li>
 <li><code>filename</code> - the name of the file being processed</li>
 <li><code>nfr</code> - the number of records read in the file so far.</li>
 <li><code>line</code> - the entire line being processed</li>
+<li><code>length</code> - the length of the line, equal to <code>len(line)</code></li>
 <li><code>fields</code> - a list of fields parsed from the line</li>
 <li><code>f0</code> - synonym for <code>line</code>, like awk's $0 variable</li>
 <li><code>f1</code>, <code>f2</code>, &hellip; - the individual parsed fields (which are None if
@@ -284,8 +269,7 @@ they don't exist) like awk's $1, $2, &hellip; variables</li>
 the on_condition is first valid, result is the value.
 When the off-condition is valid, result is the value.
 In between, the result is True</li>
-</ul>
-<p>as well as any **kwargs arguments passed to the awk call.</p></div>
+</ul></div>
 </dd>
 <dt id="awkish.awk.Awk.end"><code class="name flex">
 <span>def <span class="ident">end</span></span>(<span>self, f)</span>
@@ -295,14 +279,13 @@ In between, the result is True</li>
 being processed. This does not work on methods.</p>
 <p>For example, if <code>a</code> is a Awk object,</p>
 <pre><code>@a.end
-def afterfile():
-    global x
-    x = {}
+def afterfile(self):
+    del self.x
 </code></pre>
 <p>then the afterfile function will be after processing each file.
 Multiple functions can be decorated by endfile and will be executed in turn
 after processing any file.
-A function decorated by <code>end</code> can take the same arguments as <code><a title="awkish.awk.Awk.begin" href="#awkish.awk.Awk.begin">Awk.begin()</a></code>.</p></div>
+A function decorated by <code>end</code> can take the same argument as <code><a title="awkish.awk.Awk.begin" href="#awkish.awk.Awk.begin">Awk.begin()</a></code>.</p></div>
 </dd>
 <dt id="awkish.awk.Awk.endjob"><code class="name flex">
 <span>def <span class="ident">endjob</span></span>(<span>self, f)</span>
@@ -312,15 +295,20 @@ A function decorated by <code>end</code> can take the same arguments as <code><a
 are processed. This does not work on methods.</p>
 <p>For example, if <code>a</code> is a Awk object,</p>
 <pre><code>@a.endjob
-def cleanup():
-    global x
-    x = {}
+def cleanup(self):
+    del self.x
 </code></pre>
 <p>then the cleanup function will be called at the end of processing.
 Multiple functions can be decorated by end and will be executed in turn
 at the end of processing.
-A function decorated by <code>endjob</code> can take thes same arguments as one
+A function decorated by <code>endjob</code> can take the same argument as one
 decorated by <code><a title="awkish.awk.Awk.beginjob" href="#awkish.awk.Awk.beginjob">Awk.beginjob()</a></code>.</p></div>
+</dd>
+<dt id="awkish.awk.Awk.print"><code class="name flex">
+<span>def <span class="ident">print</span></span>(<span>self, *args)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>print using defined <code>OFS</code> and <code>ORS</code> characters</p></div>
 </dd>
 <dt id="awkish.awk.Awk.when"><code class="name flex">
 <span>def <span class="ident">when</span></span>(<span>self, condition)</span>
@@ -337,26 +325,25 @@ returned other than False or None is equivalent to True.
 condition may be the boolean <code>True</code>, in which case all lines are processed.</dd>
 </dl>
 <p>For example, if <code>a</code> is a Awk object,</p>
-<pre><code>@a.when(lambda line:line[0]=='$')
-def doline(line):
-    print(line)
+<pre><code>@a.when(lambda self:self.line[0]=='$')
+def doline(self):
+    print(self.line)
 </code></pre>
 <p>then the <code>doline</code> action will be triggered for every line starting with $,
 and print it.</p>
-<p>The default action is <code>lambda line:print(line)</code> so the above could be
+<p>The default action is <code>lambda self:self.print(self.line)</code> so the above could be
 simplified to</p>
-<pre><code>a.when(lambda line:line[0]=='$')()
+<pre><code>a.when(lambda self:self.line[0]=='$')()
 </code></pre>
 <p>If the condition is <code>True</code>, as here:</p>
 <pre><code>@a.when(True)
-def doline(line):
-    print(line)
+def doline(self):
+    print(self.line)
 </code></pre>
 <p>then the decorated action <code>doline</code> will be called for every line.</p>
-<p>Both the condition
-passed to <code>when</code> and the decorated function can use the following parameters:</p>
+<p>The optional <code>self</code> argument to when actions and the condition is the awk object with
+the following additional properties:</p>
 <ul>
-<li><code>self</code> - the awk object that is running</li>
 <li><code>nr</code> - the number of records read in the job so far.</li>
 <li><code>filename</code> - the name of the file being processed</li>
 <li><code>nfr</code> - the number of records read in the file so far.</li>
@@ -367,8 +354,7 @@ passed to <code>when</code> and the decorated function can use the following par
 they don't exist) like awk's $1, $2, &hellip; variables</li>
 <li><code>nf</code> - the number of fields, equal to <code>len(fields)</code></li>
 <li><code>result</code> - the result of the condition passed to <code>when</code></li>
-</ul>
-<p>as well as any **kwargs arguments passed to the awk call.</p></div>
+</ul></div>
 </dd>
 </dl>
 </dd>
@@ -399,6 +385,7 @@ they don't exist) like awk's $1, $2, &hellip; variables</li>
 <li><code><a title="awkish.awk.Awk.endjob" href="#awkish.awk.Awk.endjob">endjob</a></code></li>
 <li><code><a title="awkish.awk.Awk.find" href="#awkish.awk.Awk.find">find</a></code></li>
 <li><code><a title="awkish.awk.Awk.match" href="#awkish.awk.Awk.match">match</a></code></li>
+<li><code><a title="awkish.awk.Awk.print" href="#awkish.awk.Awk.print">print</a></code></li>
 <li><code><a title="awkish.awk.Awk.search" href="#awkish.awk.Awk.search">search</a></code></li>
 <li><code><a title="awkish.awk.Awk.when" href="#awkish.awk.Awk.when">when</a></code></li>
 </ul>

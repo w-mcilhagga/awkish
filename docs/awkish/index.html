@@ -42,15 +42,16 @@ awk = Awk()
 
 # 2. define conditions and actions
 @awk.when(True)
-def doline(line):
-    print(line)
+def doline(self):
+    print(self.line, end='')
 
 # 3. run it on a file
 awk('filename.txt')
 </code></pre>
 <p>The condition decorator <code>@awk.when(True)</code> indicates that the decorated action should be called for every line.</p>
-<p>The action function <code>doline</code> is declared with a parameter <code>line</code> which is filled in with
-the entire contents of the line each time it is called.</p>
+<p>The action function <code>doline</code> is declared with a parameter <code>self</code> which has varius
+attributes set when called; one is <code>line</code> which is the entire line including endline
+markers.</p>
 <p>Finally, the awkish object is called with the name of the file to be processed. Output
 is sent to <code>stdout</code> by default, but if you want it redirected, you can add a named output parameter:
 <code>awk('filename.txt', output='out.txt')</code></p>
@@ -63,7 +64,7 @@ awk.when(True)()
 awk('filename.txt')
 </code></pre>
 <p>When the condition decorator is called as a normal function, the action defaults to
-<code>lambda line:print(line)</code> much like awk itself.
+<code>lambda self:self.print(self.line)</code> much like awk itself.
 This is the idiom we'll use below, when we can.</p>
 <h3 id="print-every-2nd-line">Print Every 2nd Line</h3>
 <pre><code class="language-python">from awkish import Awk
@@ -72,14 +73,14 @@ This is the idiom we'll use below, when we can.</p>
 awk = Awk()
 
 # 2. define conditions and actions
-awk.when(lambda nfr: nfr%2==0)()
+awk.when(lambda self: self.nfr%2==0)()
 
 # 3. run it on a file
 awk('filename.txt')
 </code></pre>
 <p>The condition decorator <code>@awk.when(...)</code> will invoke the default decorated action
-<code>lambda line:print(line)</code> every time the predicate
-is true. Here the predicate <code>lambda nfr: nfr%2==0</code> is declared with a parameter <code>nfr</code>
+<code>lambda self:print(self.line)</code> every time the predicate
+is true. Here the predicate <code>lambda self: self.nfr%2==0</code> uses the attribute <code>nfr</code>
 which is filled in with the <strong>n</strong>umber of <strong>f</strong>ile <strong>r</strong>ecords that have been processed.</p>
 <h3 id="print-lines-longer-than-80-characters">Print lines longer than 80 characters</h3>
 <pre><code class="language-python">from awkish import Awk
@@ -88,7 +89,7 @@ which is filled in with the <strong>n</strong>umber of <strong>f</strong>ile <st
 awk = Awk()
 
 # 2. define conditions and actions
-awk.when(lambda line: len(line)&gt;80)()
+awk.when(lambda self: self.length&gt;80)()
 
 # 3. run it on a file
 awk('filename.txt')
@@ -96,31 +97,30 @@ awk('filename.txt')
 <h3 id="print-the-longest-line">Print the longest line</h3>
 <pre><code class="language-python">from awkish import Awk
 
-# globals to track line length
-linelen = -1
-longest_line = None
-
 # 1. create the awk object
 longest = Awk()
 
-# 2. define conditions and actions
 
-@longest.when(lambda line:len(line)&gt;linelen)
-def savelongest(line):
-    global linelen, longest_line
-    linelen = len(line)
-    longest_line = line
+# 2. define conditions and actions
+@logest.begin
+def startup(self);
+    longest.linelen = -1
+    longest.longest_line = None
+
+@longest.when(lambda self:self.length&gt;linelen)
+def savelongest(self):
+    self.linelen = self.length
+    self.longest_line = self.line
 
 @longest.end
-def reportlongest():
-    global linelen, longest_line
-    print(f'The longest line is {linelen} characters long:')
-    print(longest_line)
+def reportlongest(self):
+    print(f'The longest line is {selflinelen} characters long:')
+    print(self.longest_line)
 
 # 3. run it on a file
 longest('filename.txt')
 </code></pre>
-<p>This example uses globals to keep track of the line and length. The decorator
+<p>The decorator <code>longest.begin</code> initializes some attributes of the awk object. The decorator
 <code>longest.end</code> will run the decorated function after the file has been
 processed. If you pass multiple filenames to the awk object, the function(s) decorated
 by <code>end</code> will run after each file. To run functions after all files, use the <code>endjob</code> decorator.</p>
@@ -132,14 +132,14 @@ by <code>end</code> will run after each file. To run functions after all files, 
 awk = Awk(FS=Awk.CSV)
 
 # 2. define conditions and actions
-awk.when(True)(lambda f1, f3:print(f1+','+f3))
+awk.when(True)(lambda self:print(self.f1+','+self.f3))
 
 # 3. run it on a file
 awk('filename.txt')
 </code></pre>
 <p>In this case the awk field seperator <code>FS</code> is set to <code>Awk.CSV</code> which is a function that
 parses records according to RFC4180 (except that, since records/lines are parsed first, quoted fields can't include line breaks). Just using <code>FS=','</code> won't achieve this.</p>
-<p>The lambda function is declared with two parameters <code>f1</code> and <code>f3</code> which are filled in
+<p>The lambda function uses two attributes <code>f1</code> and <code>f3</code> which are filled in
 with the (string) values of the first and third fields in the record. These correspond
 to <code>$1</code> and <code>$3</code> in awk proper (but <code>$</code> isn't a legal identifier character in python,
 so <code>f</code> is used instead.)</p>
@@ -157,7 +157,7 @@ the pattern is found, then you could do this:</p>
 <pre><code class="language-python">from awkish import Awk
 awk = Awk(FS=Awk.CSV)
 
-awk.when(Awk.find('John'))(lambda result: print('John found at position', result))
+awk.when(Awk.find('John'))(lambda self: print('John found at position', self.result))
 awk.when(Awk.find('John'))()
 
 awk('filename.txt')
@@ -165,8 +165,7 @@ awk('filename.txt')
 <p>This will print two lines for each find: the first one says where the pattern was
 found (using the parameter <code>result</code>) and the second one prints the line. Actions are
 executed in the order they are defined.</p>
-<p>In this example, searching for John twice per line isn't exactly efficient, but awkish is really more
-about convenience.</p>
+<p>In this example, searching for John twice per line isn't exactly efficient, but awkish is really more about convenience.</p>
 <p>If you'd rather use a regular
 expression, <code>Awk.search(pattern)</code> will invoke <code>re.search(pattern, line)</code> for
 each line/record in the file, and do the associated action (in this case, the default).</p>

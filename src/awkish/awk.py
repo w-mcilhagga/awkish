@@ -15,35 +15,16 @@ from contextlib import redirect_stdout as redirect, contextmanager
 
 
 def _argwrap(f):
-    # works out arg names of f in order, then wraps it in a call using a
-    # dict arg which has those names
-    #
-    # want to be clever and set up args that don't exist with their default
-    # values, and to copy those values back to args. Use ProxyTypes or wrapt
-    # proxies; however these don't support direct assignment as this can't
-    # be overridden in python
-    #
-    # inspect.signature(f).parameters[name].default
+    # works out number of args for f (0, or 1) and returns a function
+    # that always takes 1 arg.
+    nparams = len(inspect.signature(f).parameters)
 
-    params = inspect.signature(f).parameters
-    argnames = tuple(params)
-
-    def getvalue(d, name):
-        if name in d:
-            return d[name]
-        if params[name].default is not inspect._empty:
-            # we return the given default
-            return params[name].default
-        if re.match(r"f\d+$", name) and "line" in d:
-            # when processing lines, the default for fields is None
-            return None
-        # otherwise we raise an error
-        raise RuntimeError("parameter " + name + " does not have a value")
-
-    def wrapped(d):
-        return f(*(getvalue(d, name) for name in argnames))
-
-    return wrapped
+    if nparams == 0:
+        return lambda x: f()
+    elif nparams == 1:
+        return f
+    else:
+        raise ValueError("action must have no more than 1 parameter")
 
 
 # CSV parsing regexes
@@ -101,7 +82,7 @@ class Awk:
         fields = [g + v for (g, v) in zip(gaps, fields)]
         return [f.strip('"').replace('""', '"') for f in fields]
 
-    def __init__(self, FS=re.compile(" +"), RS=""):
+    def __init__(self, FS=re.compile(" +"), OFS=" ", RS="", ORS="\n"):
         """creates an instance of an awk-like program object
 
         Args:
@@ -110,13 +91,11 @@ class Awk:
                 each line is split using FS.split(string). If a callable,
                 it is passed the line and returns a list of fields. The default is
                 to remove multiple spaces.
-            RS: the record separator, used as the newline parameter to an open
-                call. Default is None. See open in the standard library for
-                more details.
-
-                Note that if RS is '', the line ends are stripped
-                from each line (different behaviour to open). If RS is None
-                the line ends are kept but converted to `\\n`
+            OFS: the output field separator
+            RS: the record separator, used as the newline parameter to an `open`
+                call. Default is '' which does not translate newlines when reading
+                or writing.
+            ORS: output record separator
 
         Returns:
             a callable Awk object. This can be used to process files by calling it. For
@@ -138,22 +117,29 @@ class Awk:
         * `output` - (optional) the name of the file to dump the program output
         * `mode` - (optional) when `output` is specified, the open mode (defaults
             to "wt")
-        * `**kwargs` - (optional) named args which can be passed to actions
 
         Thus, to put the output in `out.txt` and define an action argument x,
         we would write
 
         ```
-        ma(filename1, filename2, filename3, output="out.txt", x=5)
+        ma(filename1, filename2, filename3, output="out.txt")
         ```
         """
         self.FS = FS  # field separator
+        self.OFS = OFS  # output field separator
         self.RS = RS  # record separator, passed to open() as newline
+        self.ORS = ORS  # output record separator
         self.beginjob_calls = []
         self.endjob_calls = []
         self.begin_calls = []
         self.end_calls = []
         self.calls = []
+        # the default action
+        self.defaultaction = lambda self: self.print(self.line)
+
+    def print(self, *args):
+        """print using defined `OFS` and `ORS` characters"""
+        print(*args, sep=self.OFS, end=self.ORS)
 
     def beginjob(self, f):
         """decorator for functions to be called before any files
@@ -163,30 +149,17 @@ class Awk:
         For example, if `a` is a Awk object,
         ```
         @a.beginjob
-        def setup():
-            global x
-            x = {}
+        def setup(self):
+            self.x = {}
         ```
         then the setup function will be called at the start of processing.
         Multiple functions can be decorated by `beginjob` and will be executed in turn
         at the start of processing.
-        A function decorated by `beginjob` can take any of the following arguments:
+        The optional `self` argument to beginjob actions is the awk object with
+        the following additional properties:
 
-        * `self` - the awk object that is running
         * `nr` - the number of records read in the job, which be zero
            when the function is called.
-
-        as well as any **kwargs arguments passed to the awk call.
-
-        An action that has a parameter `self` is a pseudo-method of the awk
-        object, since when the action is called, `self` is replaced by the awk
-        object. You could use `self` to, for example,
-
-        * change `self.FS` or `self.RS` as needed
-        * add or change properties local to the processing.
-
-        Note that the `self` parameter does not have to be the first one, because
-        regular python binding does not take place.
         """
         self.beginjob_calls.append(_argwrap(f))
 
@@ -197,14 +170,13 @@ class Awk:
         For example, if `a` is a Awk object,
         ```
         @a.endjob
-        def cleanup():
-            global x
-            x = {}
+        def cleanup(self):
+            del self.x
         ```
         then the cleanup function will be called at the end of processing.
         Multiple functions can be decorated by end and will be executed in turn
         at the end of processing.
-        A function decorated by `endjob` can take thes same arguments as one
+        A function decorated by `endjob` can take the same argument as one
         decorated by `Awk.beginjob`.
         """
         self.endjob_calls.append(_argwrap(f))
@@ -217,22 +189,19 @@ class Awk:
         For example, if `a` is a Awk object,
         ```
         @a.begin
-        def startfile():
-            global x
-            x = {}
+        def startfile(self):
+            self.x = {}
         ```
         then the startfile function will be called before processing any and every file.
         Multiple functions can be decorated by `begin` and will be executed in turn
         before processing any file.
-        A function decorated by `begin` can take the following arguments:
+        The optional `self` argument to beginjob actions is the awk object with
+        the following additional properties:
 
-        * `self` - the awk object that is running
         * `nr` - the number of records read in the job so far.
         * `filename` - the name of the file being processed
         * `nfr` - the number of records read in the file, which will be zero
            when the function is called.
-
-        as well as any **kwargs arguments passed to the awk call.
         """
         self.begin_calls.append(_argwrap(f))
 
@@ -243,21 +212,20 @@ class Awk:
         For example, if `a` is a Awk object,
         ```
         @a.end
-        def afterfile():
-            global x
-            x = {}
+        def afterfile(self):
+            del self.x
         ```
         then the afterfile function will be after processing each file.
         Multiple functions can be decorated by endfile and will be executed in turn
         after processing any file.
-        A function decorated by `end` can take the same arguments as `Awk.begin`.
+        A function decorated by `end` can take the same argument as `Awk.begin`.
         """
         self.end_calls.append(_argwrap(f))
 
     def _condition_decorator(self, condition):
         # internal to make the decorator
 
-        def condition_decorator(f=lambda line: print(line)):
+        def condition_decorator(f=self.defaultaction):
             # introspect f to see what to pass it.
             self.calls.append([_argwrap(condition), _argwrap(f)])
             return f
@@ -276,33 +244,32 @@ class Awk:
 
         For example, if `a` is a Awk object,
         ```
-        @a.when(lambda line:line[0]=='$')
-        def doline(line):
-            print(line)
+        @a.when(lambda self:self.line[0]=='$')
+        def doline(self):
+            print(self.line)
         ```
 
         then the `doline` action will be triggered for every line starting with $,
         and print it.
 
-        The default action is `lambda line:print(line)` so the above could be
+        The default action is `lambda self:self.print(self.line)` so the above could be
         simplified to
         ```
-        a.when(lambda line:line[0]=='$')()
+        a.when(lambda self:self.line[0]=='$')()
         ```
 
         If the condition is `True`, as here:
 
         ```
         @a.when(True)
-        def doline(line):
-            print(line)
+        def doline(self):
+            print(self.line)
         ```
         then the decorated action `doline` will be called for every line.
 
-        Both the condition
-        passed to `when` and the decorated function can use the following parameters:
+        The optional `self` argument to when actions and the condition is the awk object with
+        the following additional properties:
 
-        * `self` - the awk object that is running
         * `nr` - the number of records read in the job so far.
         * `filename` - the name of the file being processed
         * `nfr` - the number of records read in the file so far.
@@ -314,7 +281,6 @@ class Awk:
         * `nf` - the number of fields, equal to `len(fields)`
         * `result` - the result of the condition passed to `when`
 
-        as well as any **kwargs arguments passed to the awk call.
         """
         if type(condition) is bool:
             condition = lambda: condition
@@ -322,7 +288,7 @@ class Awk:
         return self._condition_decorator(condition)
 
     def between(self, on_condition, off_condition):
-        """a range-matching decorator which selects all lines between an on conditoon
+        """a range-matching decorator which selects all lines between an on condition
         and an off condition occurring. This does not work on methods.
 
         Args:
@@ -339,36 +305,35 @@ class Awk:
 
         For example, if `a` is a Awk object,
         ```
-        @a.between(lambda nf:nf==5, lambda nf:nf==10)
-        def doline(line):
-            print(line)
+        @a.between(lambda self:self.nf==5, lambda self:self.nf==10)
+        def doline(self):
+            print(self.line, end='')
         ```
 
         then the `doline` action will be triggered for every line between the 5th and 10th inclusive.
-        
-        This is **not** the same as `a.when(lambda nf: nf>=5 and nf<=10)`. The `between`
+
+        This is **not** the same as `a.when(lambda self: self.nf>=5 and self.nf<=10)`. The `between`
         will start processing when it finds a line with exactly 5 fields and end processing when it finds a line
         with exactly 10 fields. The `when` will process all lines with between 5 and 10 fields.
 
-        Both the conditions
-        passed to `between` and the decorated function can use the following parameters:
+        The optional `self` argument to when actions and the condition is the awk object with
+        the following additional properties:
 
-        * `self` - the awk object that is running
         * `nr` - the number of records read in the job so far.
         * `filename` - the name of the file being processed
         * `nfr` - the number of records read in the file so far.
         * `line` - the entire line being processed
+        * `length` - the length of the line, equal to `len(line)`
         * `fields` - a list of fields parsed from the line
         * `f0` - synonym for `line`, like awk's $0 variable
         * `f1`, `f2`, ... - the individual parsed fields (which are None if
            they don't exist) like awk's $1, $2, ... variables
         * `nf` - the number of fields, equal to `len(fields)`
-        * `result` - the result of the condition passed to `range`. When 
+        * `result` - the result of the condition passed to `range`. When
            the on_condition is first valid, result is the value.
            When the off-condition is valid, result is the value.
            In between, the result is True
 
-        as well as any **kwargs arguments passed to the awk call.
         """
         on = False
         if type(on_condition) is bool:
@@ -381,9 +346,9 @@ class Awk:
         def condition(d):
             # d is a dict
             nonlocal on
-            if on in [False, None]: # avoids 0 mapped to False
+            if on in [False, None]:  # avoids 0 mapped to False
                 # check to see if the on condition is satisfied
-                on = on_condition(d) # assignment makes 'on' local unless flagged otherwise
+                on = on_condition(d)
                 return on
             else:
                 v = off_condition(d)
@@ -395,12 +360,7 @@ class Awk:
                     # True, return on-returned value
                     return on
 
-        def condition_decorator(f=lambda line: print(line)):
-            # introspect f to see what to pass it.
-            self.calls.append([condition, _argwrap(f)])
-            return f
-
-        return condition_decorator
+        return self._condition_decorator(condition)
 
     @staticmethod
     def find(patt):
@@ -412,17 +372,19 @@ class Awk:
         Returns:
             a condition function which invokes line.find(patt). If the
             pattern is found, it returns the index; otherwise it returns false
-            
+
         For example, if `a` is an Awk object, then
         ```
         a.when(Awk.find("abc"))
-        def doline(line):
+        def doline(self):
             ...
         ```
         the decorated function `doline` will be called every time the line
-        contains the substring `"abc"`. 
+        contains the substring `"abc"`.
         """
-        return lambda line: idx if (idx := line.find(patt)) != -1 else False
+        return (
+            lambda self: idx if (idx := self.line.find(patt)) != -1 else False
+        )
 
     @staticmethod
     def match(patt):
@@ -434,18 +396,18 @@ class Awk:
         Returns:
             a condition function which invokes re.match(patt, line). It
             returns the result of the match
-            
+
         For example, if `a` is an Awk object, then
         ```
         a.when(Awk.match("a+"))
-        def doline(line):
+        def doline(self):
             ...
         ```
-        the decorated function `doline` will be called every time 
-        `re.match("a+",line)` succeeds.  
+        the decorated function `doline` will be called every time
+        `re.match("a+",line)` succeeds.
         """
         rex = re.compile(patt)
-        return lambda line: rex.match(line)
+        return lambda self: rex.match(self.line)
 
     @staticmethod
     def search(patt):
@@ -459,58 +421,53 @@ class Awk:
             returns the result of the match
         """
         rex = re.compile(patt)
-        return lambda line: rex.search(line)
+        return lambda self: rex.search(self.line)
 
     def __call__(self, *filenames, output=None, mode="wt", **kwargs):
         # run the awk over all the files
         @contextmanager
         def file_or_stdout(f):
             # __enter__
-            outfile = sys.stdout if f is None else open(f, mode)
+            outfile = (
+                sys.stdout if f is None else open(f, mode, newline=self.RS)
+            )
             yield outfile
             # __exit__
             if f is not None:
                 outfile.close()
 
-        args = {
-            "self": self,
-            **kwargs,
-            "nr": 0,
-        }
+        self.nr = 0
+
         with file_or_stdout(output) as f:
             with redirect(f):
                 # run the begin code
                 for action in self.beginjob_calls:
-                    action(args)
+                    action(self)
                 # process the files
                 for fname in filenames:
-                    args["nr"] = self._processfile(fname, {**args})
+                    self._processfile(fname)
                 # run the end code
                 for action in self.endjob_calls:
-                    action(args)
+                    action(self)
 
-    def _processfile(self, fname, proc_args):
+    def _processfile(self, fname):
         # args has line, fields f0, f1, ... nr, fnr, filename, self
         # f0 is the same as the line
         # f1, f2, .. are the fields fields[0], fields[1], ...
         # f1, ... are not guaranteed to exist so you have to give default
         # values in an action or condition (otherwise you get inspect._empty)
-        proc_args = {**proc_args, "filename": fname}
+        self.filename = fname
         for action in self.begin_calls:
-            action(proc_args)
+            action(self)
         with open(fname, newline=self.RS) as file:
-            proc_args["nfr"] = 0
+            self.nfr = 0
             for item in file:
-                proc_args["nfr"] += 1
-                proc_args["nr"] += 1
+                self.nfr += 1
+                self.nr += 1
                 # copy args for this loop
-                args = {**proc_args}
                 # setup args['line']
-                if self.RS == "":
-                    item = re.sub(r"(\r\n|\n)$", "", item)
-                else:
-                    item = item.replace(self.RS, "")
-                args["line"] = args["f0"] = item
+                self.line = self.f0 = item
+                self.length = len(item)
                 # parse the fields
                 if callable(self.FS):
                     fields = self.FS(item)
@@ -525,16 +482,23 @@ class Awk:
                     fields = [*item]
                 else:
                     fields = item.split(self.FS)
-                args["fields"] = fields
-                args["nf"] = len(fields)
+                self.fields = fields
+                self.nf = len(fields)
                 for i, value in enumerate(fields):
-                    args[f"f{i+1}"] = fields[i]
+                    setattr(self, f"f{i+1}", fields[i])
                 # run all the calls
                 for condition, action in self.calls:
-                    result = condition(args)
+                    result = condition(self)
                     if result not in [None, False]:
-                        action({**args, "result": result})
+                        self.result = result
+                        action(self)
+                        del self.result
+                # clear properties
+                for i, value in enumerate(fields):
+                    delattr(self, f"f{i+1}")
+                del self.fields
+                del self.length
+                del self.line
+                del self.f0
         for action in self.end_calls:
-            action(proc_args)
-        # return the only value to persist between calls
-        return proc_args["nr"]
+            action(self)

@@ -1,0 +1,21 @@
+### Print all lines
+
+```python
+from awkish import Awk
+
+# 1. create the awk object
+awk = Awk()
+
+# 2. define conditions and actions
+@awk.when(True)
+def doline(line):
+    print(line)
+
+# 3. run it on a file
+awk('filename.txt')
+```
+
+The condition decorator `@awk.when(True)` indicates that the decorated action should be called for every line.
+
+The action function `doline` is declared with a parameter `line` which is filled in with
+the entire contents of the line each time it is called.

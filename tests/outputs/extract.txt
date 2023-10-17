@@ -1,0 +1,12 @@
+from awkish import Awk
+
+# 1. create the awk object
+awk = Awk()
+
+# 2. define conditions and actions
+@awk.when(True)
+def doline(line):
+    print(line)
+
+# 3. run it on a file
+awk('filename.txt')

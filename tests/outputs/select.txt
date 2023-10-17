@@ -1,0 +1,7 @@
+CREDITS,USER
+99,sylvain
+52,sonia
+52,sonia
+25,sonia
+10,sylvain
+8,öle
