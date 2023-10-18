@@ -25,19 +25,17 @@ from awkish import Awk
 awk = Awk()
 
 # 2. define conditions and actions
-@awk.when(True)
+@awk.all
 def doline(self):
-    print(self.line, end='')
+    print(self.line, end=self.line_end)
 
 # 3. run it on a file
 awk('filename.txt')
 ```
 
-The condition decorator `@awk.when(True)` indicates that the decorated action should be called for every line.
-
-The action function `doline` is declared with a parameter `self` which has varius
-attributes set when called; one is `line` which is the entire line including endline
-markers.
+The action function `doline` is declared with a parameter `self` which has various
+attributes set when called; one is `line` which is the entire line excluding endline
+characters. (The endline characters are in `self.line_end`)
 
 Finally, the awkish object is called with the name of the file to be processed. Output
 is sent to `stdout` by default, but if you want it redirected, you can add a named output parameter:
@@ -49,13 +47,13 @@ This example could also be written as
 from awkish import Awk
 awk = Awk()
 
-awk.when(True)()
+awk.all()
 
 awk('filename.txt')
 ```
 
 When the condition decorator is called as a normal function, the action defaults to
-`lambda self:self.print(self.line)` much like awk itself.
+`lambda self:self.print(self.line, end=self.line_end)` much like awk itself.
 This is the idiom we'll use below, when we can.
 
 ### Print Every 2nd Line
@@ -138,7 +136,7 @@ from awkish import Awk
 awk = Awk(FS=Awk.CSV, OFS=',', ORS='\n')
 
 # 2. define conditions and actions
-awk.when(True)(lambda self: self.print(self.f1,self.f3))
+awk.all(lambda self: self.print(self.f1,self.f3))
 
 # 3. run it on a file
 awk('filename.txt')
@@ -151,6 +149,8 @@ The lambda function uses two attributes `f1` and `f3` which are filled in
 with the (string) values of the first and third fields in the record. These correspond
 to `$1` and `$3` in awk proper (but `$` isn't a legal identifier character in python,
 so `f` is used instead.)
+
+Note that Awk objects will return `None` for fields that don't exist.
 
 ### Print all lines which have some target text
 

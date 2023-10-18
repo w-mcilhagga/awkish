@@ -129,10 +129,10 @@ by <code>end</code> will run after each file. To run functions after all files, 
 <pre><code class="language-python">from awkish import Awk
 
 # 1. create the awk object
-awk = Awk(FS=Awk.CSV)
+awk = Awk(FS=Awk.CSV, OFS=',', ORS='\n')
 
 # 2. define conditions and actions
-awk.when(True)(lambda self:print(self.f1+','+self.f3))
+awk.when(True)(lambda self: self.print(self.f1,self.f3))
 
 # 3. run it on a file
 awk('filename.txt')

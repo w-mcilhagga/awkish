@@ -13,6 +13,7 @@ sys.path.append(up)
 sys.path.append(os.getcwd())
 from awkish import Awk
 
+# line endings are an issue with echo & similar
 
 # ---------------------------------------------------
 # echo
@@ -20,7 +21,7 @@ from awkish import Awk
 
 def test_echo():
     a = Awk()
-    a.when(True)()
+    a.all()
     a("inputs/data.txt", output="result.txt")
     assert fc.cmp("outputs/echo.txt", "result.txt")
     os.remove("result.txt")
@@ -31,7 +32,7 @@ def test_echo():
 
 def test_param():
     a = Awk()
-    a.when(True)(lambda self: self.print(self.prefix+self.line))
+    a.all(lambda self: self.print(self.prefix+self.line))
     a.prefix = '>>> '
     a("inputs/data.txt", output="result.txt")
     assert fc.cmp("outputs/echo2.txt", "result.txt")
@@ -162,7 +163,7 @@ def test_extract():
 
     @a.between(Awk.match(" *```"), Awk.match(" *```"))
     def printcode(self):
-        if re.match(" *```", self.line) is None:
+        if self.result is True: # between on and off
             self.print(self.line)
 
     a("inputs/fence.txt", output="result.txt")

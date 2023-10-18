@@ -134,13 +134,21 @@ class Awk:
         self.begin_calls = []
         self.end_calls = []
         self.calls = []
-        # the default action
-        self.defaultaction = lambda self: self.print(self.line)
+
+    def echo(self):
+        """echo *exactly* the line input, ignoring ORS"""
+        print(self.line+self.line_end, end='')
 
     def print(self, *args):
         """print using defined `OFS` and `ORS` characters"""
         print(*args, sep=self.OFS, end=self.ORS)
 
+    def __getattr__(self, name):
+        # returns none for names equal to 'fnnn'
+        if re.match(r'f\d+', name):
+            return None
+        raise AttributeError(f"'Awk' object has no attribute '{name}'")
+        
     def beginjob(self, f):
         """decorator for functions to be called before any files
         are processed. This
@@ -225,7 +233,7 @@ class Awk:
     def _condition_decorator(self, condition):
         # internal to make the decorator
 
-        def condition_decorator(f=self.defaultaction):
+        def condition_decorator(f=self.echo):
             # introspect f to see what to pass it.
             self.calls.append([_argwrap(condition), _argwrap(f)])
             return f
@@ -273,7 +281,8 @@ class Awk:
         * `nr` - the number of records read in the job so far.
         * `filename` - the name of the file being processed
         * `nfr` - the number of records read in the file so far.
-        * `line` - the entire line being processed
+        * `line` - the entire line being processed, without the line ending
+        * `line_end` - the line ending
         * `fields` - a list of fields parsed from the line
         * `f0` - synonym for `line`, like awk's $0 variable
         * `f1`, `f2`, ... - the individual parsed fields (which are None if
@@ -287,6 +296,10 @@ class Awk:
 
         return self._condition_decorator(condition)
 
+    def all(self, f=None):
+        '''a synonym for self.when(True)'''
+        return self.when(True)(f or self.echo)
+    
     def between(self, on_condition, off_condition):
         """a range-matching decorator which selects all lines between an on condition
         and an off condition occurring. This does not work on methods.
@@ -322,7 +335,8 @@ class Awk:
         * `nr` - the number of records read in the job so far.
         * `filename` - the name of the file being processed
         * `nfr` - the number of records read in the file so far.
-        * `line` - the entire line being processed
+        * `line` - the entire line being processed, without the line ending
+        * `line_end` - the line ending
         * `length` - the length of the line, equal to `len(line)`
         * `fields` - a list of fields parsed from the line
         * `f0` - synonym for `line`, like awk's $0 variable
@@ -358,6 +372,7 @@ class Awk:
                     return v
                 else:
                     # True, return on-returned value
+                    on = True
                     return on
 
         return self._condition_decorator(condition)
@@ -466,6 +481,9 @@ class Awk:
                 self.nr += 1
                 # copy args for this loop
                 # setup args['line']
+                self.line_end = (re.search(r'\r?\n', item) or [''])[0]
+                if len(self.line_end)>0:
+                    item = item[:-len(self.line_end)]
                 self.line = self.f0 = item
                 self.length = len(item)
                 # parse the fields
@@ -499,6 +517,7 @@ class Awk:
                 del self.fields
                 del self.length
                 del self.line
+                del self.line_end
                 del self.f0
         for action in self.end_calls:
             action(self)

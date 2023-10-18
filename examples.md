@@ -17,10 +17,10 @@ Originally compiled for awk by Eric Pement - eric [at] pement.org
 
 ```python
 a = Awk()
-a.when(True)(lambda line:print(line)
+a.all()
 ```
 
-This works because each line in the file has the line end (\n or \r\n) on it.
+`all` works on every line and the default is to echo the line exactly.
 
 ### double space a file which already has blank lines in it.
 
@@ -28,14 +28,14 @@ Output file should contain no more than one blank line between lines of text.
 
 ```python
 a = Awk()
-a.when(lambda nf:nf>0)(lambda line:print(line)
+a.when(lambda self:self.nf>0)()
 ```
 
 ### triple space a file
 
 ```python
 a = Awk()
-a.when(True)(lambda line:print(line+'\n')
+a.all(lambda self:self.print(self.line+'\n')
 ```
 
 ## NUMBERING AND CALCULATIONS:
@@ -46,14 +46,14 @@ Using a tab (\t) instead of space will preserve margins.
 
 ```python
 a = Awk()
-a.when(True)(lambda fnr, line: print(fnr+'\t'+line, end='')
+a.all(lambda self: print(self.fnr+'\t'+self.line)
 ```
 
 ### precede each line by its line number FOR ALL FILES TOGETHER, with tab.
 
 ```python
 a = Awk()
-a.when(True)(lambda nr, line: print(nr+'\t'+line, end='')
+a.all(lambda self: print(self.nr+'\t'+self.line)
 a(file1, file2, ...)
 ```
 
@@ -61,26 +61,22 @@ a(file1, file2, ...)
 
 ```python
 a = Awk()
-@a.when(True)
-def numberlines(fnr, nf, line):
-    if nf>0:
-        print(fnr+'\t'+line, end='')
-    else:
-        print('\t'+line, end='')
+a.when(lambda self:self.fnr>0)(lambda self:print(self.fnr, end=''))
+a.all(lambda self:print('\t', self.line))
 ```
 
 ### count lines (emulates "wc -l")
 
 ```python
 a = Awk()
-a.end(lambda fnr: print(fnr))
+a.end(lambda self: print(self.fnr))
 ```
 
 ### print the sums of the fields of every line
 
 ```python
 a = Awk()
-a.when(True)(lambda fields:print(sum(map(float, fields))))
+a.all(lambda self:print(sum(map(float, self.fields))))
 ```
 
 ### print the total number of fields ("words") in all lines
@@ -88,7 +84,7 @@ a.when(True)(lambda fields:print(sum(map(float, fields))))
 ```python
 a = Awk()
 a.begin(lambda self:self.tnf=0)
-a.when(True)(lambda self, nf:self.tnf+=nf)
+a.all(lambda self:self.tnf+=self.nf)
 a.end(lambda self:print(self.tnf)
 ```
 
@@ -108,9 +104,7 @@ Intended for finding the longest string in field #1
 ```python
 a = Awk()
 a.begin(lambda self:self.max=0)
-@a.when(lambda self, f1:len(f1)>self.max)
-def save(self, line, f1):
-    self.max = len(f1)
+a.when(lambda self:len(self.f1)>self.max)(lambda self:self.max=len(self.f1))
 a.end(lambda self:print(self.max, self.line)
 ```
 
@@ -118,14 +112,14 @@ a.end(lambda self:print(self.max, self.line)
 
 ```python
 a = Awk()
-a.when(True)(lambda nf,line: print(str(nf)+':\n'+line))
+a.all(lambda self: print(str(self.nf)+':\n'+self.line))
 ```
 
 ### print the last field of each line
 
 ```python
 a = Awk()
-a.when(True)(lambda fields: print(fields[-1]))
+a.all(lambda self: print(self.fields[-1]))
 ```
 
 ### print the last field of the last line
@@ -136,14 +130,14 @@ awk '{ field = $NF }; END{ print field }'
 
 ```python
 a = Awk()
-a.when(lambda nf: nf>4)()
+a.when(lambda self: self.nf>4)()
 ```
 
 ### print every line where the value of the last field is > 4
 
 ```python
 a = Awk()
-a.when(lambda f4='': nf>4)()
+a.when(lambda self: self.fields[-1]>4)()
 ```
 
 ## TEXT CONVERSION AND SUBSTITUTION:
@@ -179,28 +173,21 @@ awk '{l=length();s=int((79-l)/2); printf "%"(s+l)"s\n",$0}' file\*
 
 ```python
 a = Awk()
-@a.when(True)
-def rep(line, findstr, repstring):
-    print(line.replace(findstr, repstring))
-a(filename, findstr='foo', repstring='bar')
+a.findstr = 'foo'
+a.repstring = 'bar'
+a.all(lambda self: print(self.line.replace(self.findstr, self.repstring))
 ```
 
 ### substitute "foo" with "bar" ONLY for lines which contain "baz"
 
-the problem here is that the line is read-only in awkish whereas it's
-a global in awk, so it can be altered.
-
 ```python
 a = Awk()
 @a.when(Awk.find('baz'))
-def rep(self, line, findstr, repstring):
-    self.line = line.replace(findstr, repstring))
-a.when(True)(lambda self:self.print(self.line))
+def rep(self):
+    self.line = self.line.replace(findstr, repstring))
+a.all()
 a(filename, findstr='foo', repstring='bar')
 ```
-
-In this case, we store the substitution in line -- doesn't work, cos line
-is not always defined.
 
 ### substitute "foo" with "bar" EXCEPT for lines which contain "baz"
 
@@ -227,18 +214,18 @@ awk -F ":" '{print $1 | "sort" }' /etc/passwd
 ### print the first 2 fields, in opposite order, of every line
 
 ```python
-a = Awk()
-a.when(True)(lambda f1,f2: print(f2, f1, sep=','))
+a = Awk(OFS=',')
+a.all(lambda self: self.print(self.f2, self.f1))
 ```
 
 ### print every line, deleting the second field of that line
 
 ```python
 a = Awk()
-@a.when(True)
-def printline(self, fields):
-    fields[1]=''
-    self.print(*fields)
+@a.all
+def printline(self):
+    self.fields[1]=''
+    self.print(*self.fields)
 ```
 
 ### print in reverse order the fields of every line
@@ -257,14 +244,14 @@ awk 'ORS=NR%5?",":"\n"' file
 
 ```python
 a = Awk()
-a.when(lambda nr:nr<11)()
+a.when(lambda self:self.nr<11)()
 ```
 
 ### print first line of file (emulates "head -1")
 
 ```python
 a = Awk()
-a.when(lambda nr:nr<2)()
+a.when(lambda self:self.nr<2)()
 ```
 
 Not very efficient, because no early exit.
@@ -275,21 +262,21 @@ Not very efficient, because no early exit.
 a = Awk()
 @a.begin
 def b(self):
-    self.lines = ('',)
-@a.when(True)
-def update(self, line):
-    self.lines = self.lines[-1], line
-a.end(lambda self:print(self.lines, sep='\n', end='')
+    self.store = ('',)
+@a.all
+def update(self):
+    self.store = self.store[-1], self.line
+a.end(lambda self:print(self.store, sep='\n', end='\n')
 ```
 
 ### print the last line of a file (emulates "tail -1")
 
 ```python
 a = Awk()
-@a.when(True)
-def update(self, line):
-    self.line = line
-a.end(lambda self:self.print(self.line)
+@a.all
+def update(self):
+    self.lastline = self.line
+a.end(lambda self:self.print(self.lastline)
 ```
 
 ### print only lines which match regular expression (emulates "grep")
@@ -304,7 +291,7 @@ awk '!/regex/'
 
 ```python
 a = Awk()
-a.when(lambda f5='':f5=="abc123")()
+a.when(lambda self:self.f5=="abc123")()
 ```
 
 ### print only those lines where field #5 is NOT equal to "abc123"
@@ -313,7 +300,7 @@ This will also print lines which have less than 5 fields.
 
 ```python
 a = Awk()
-a.when(lambda f5='':f5!="abc123")()
+a.when(lambda self='':self.f5!="abc123")()
 ```
 
 ### matching a field against a regular expression
@@ -342,7 +329,7 @@ awk '/AAA.*BBB.*CCC/'
 
 ```python
 a = Awk()
-a.when(lambda length:length>65)()
+a.when(lambda self:self.length>65)()
 ```
 
 ### print section of file from regular expression to end of file
@@ -354,14 +341,14 @@ awk '/regex/,EOF'
 
 ```python
 a = Awk()
-a.when(lambda nr:nr>=8 and nr<=12)()
+a.when(lambda self:self.nr>=8 and self.nr<=12)()
 ```
 
 or
 
 ```python
 a = Awk()
-a.between(lambda nr:nr==8, lambda nr: nr==12)()
+a.between(lambda self:self.nr==8, lambda self: self.nr==12)()
 ```
 
 ### print line number 52

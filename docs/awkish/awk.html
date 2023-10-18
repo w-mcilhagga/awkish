@@ -176,6 +176,12 @@ returns the result of the match</p></div>
 </dl>
 <h3>Methods</h3>
 <dl>
+<dt id="awkish.awk.Awk.all"><code class="name flex">
+<span>def <span class="ident">all</span></span>(<span>self, f=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>a synonym for self.when(True)</p></div>
+</dd>
 <dt id="awkish.awk.Awk.begin"><code class="name flex">
 <span>def <span class="ident">begin</span></span>(<span>self, f)</span>
 </code></dt>
@@ -226,7 +232,7 @@ when the function is called.</li>
 <span>def <span class="ident">between</span></span>(<span>self, on_condition, off_condition)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>a range-matching decorator which selects all lines between an on conditoon
+<div class="desc"><p>a range-matching decorator which selects all lines between an on condition
 and an off condition occurring. This does not work on methods.</p>
 <h2 id="args">Args</h2>
 <dl>
@@ -258,7 +264,8 @@ the following additional properties:</p>
 <li><code>nr</code> - the number of records read in the job so far.</li>
 <li><code>filename</code> - the name of the file being processed</li>
 <li><code>nfr</code> - the number of records read in the file so far.</li>
-<li><code>line</code> - the entire line being processed</li>
+<li><code>line</code> - the entire line being processed, without the line ending</li>
+<li><code>line_end</code> - the line ending</li>
 <li><code>length</code> - the length of the line, equal to <code>len(line)</code></li>
 <li><code>fields</code> - a list of fields parsed from the line</li>
 <li><code>f0</code> - synonym for <code>line</code>, like awk's $0 variable</li>
@@ -270,6 +277,12 @@ the on_condition is first valid, result is the value.
 When the off-condition is valid, result is the value.
 In between, the result is True</li>
 </ul></div>
+</dd>
+<dt id="awkish.awk.Awk.echo"><code class="name flex">
+<span>def <span class="ident">echo</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>echo <em>exactly</em> the line input, ignoring ORS</p></div>
 </dd>
 <dt id="awkish.awk.Awk.end"><code class="name flex">
 <span>def <span class="ident">end</span></span>(<span>self, f)</span>
@@ -347,7 +360,8 @@ the following additional properties:</p>
 <li><code>nr</code> - the number of records read in the job so far.</li>
 <li><code>filename</code> - the name of the file being processed</li>
 <li><code>nfr</code> - the number of records read in the file so far.</li>
-<li><code>line</code> - the entire line being processed</li>
+<li><code>line</code> - the entire line being processed, without the line ending</li>
+<li><code>line_end</code> - the line ending</li>
 <li><code>fields</code> - a list of fields parsed from the line</li>
 <li><code>f0</code> - synonym for <code>line</code>, like awk's $0 variable</li>
 <li><code>f1</code>, <code>f2</code>, &hellip; - the individual parsed fields (which are None if
@@ -378,9 +392,11 @@ they don't exist) like awk's $1, $2, &hellip; variables</li>
 <h4><code><a title="awkish.awk.Awk" href="#awkish.awk.Awk">Awk</a></code></h4>
 <ul class="two-column">
 <li><code><a title="awkish.awk.Awk.CSV" href="#awkish.awk.Awk.CSV">CSV</a></code></li>
+<li><code><a title="awkish.awk.Awk.all" href="#awkish.awk.Awk.all">all</a></code></li>
 <li><code><a title="awkish.awk.Awk.begin" href="#awkish.awk.Awk.begin">begin</a></code></li>
 <li><code><a title="awkish.awk.Awk.beginjob" href="#awkish.awk.Awk.beginjob">beginjob</a></code></li>
 <li><code><a title="awkish.awk.Awk.between" href="#awkish.awk.Awk.between">between</a></code></li>
+<li><code><a title="awkish.awk.Awk.echo" href="#awkish.awk.Awk.echo">echo</a></code></li>
 <li><code><a title="awkish.awk.Awk.end" href="#awkish.awk.Awk.end">end</a></code></li>
 <li><code><a title="awkish.awk.Awk.endjob" href="#awkish.awk.Awk.endjob">endjob</a></code></li>
 <li><code><a title="awkish.awk.Awk.find" href="#awkish.awk.Awk.find">find</a></code></li>

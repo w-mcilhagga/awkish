@@ -12,7 +12,7 @@ to 2
 good 1
 old 1
 spot 2
- 4
+ 3
 ask 1
 somebody 1
 in 1
