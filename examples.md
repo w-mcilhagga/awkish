@@ -1,46 +1,47 @@
-# HANDY "ONE-LINE" SCRIPTS FOR AWKISH
+# "One-Line" Scripts for `awkish`
 
-These are one-liners in awk, but awkish is a bit more verbose.
+These are all one-liners in awk, but awkish is a bit more verbose. Some code golfing is used to make them a bit shorter.
 All these examples should be preceded by
 
 ```python
 from awkish import Awk()
 ```
 
-Originally compiled for awk by Eric Pement - eric [at] pement.org
+and followed by `awk(filename)` to run the awk program on a file.
+
+Originally compiled for awk by Eric Pement - eric [at] pement.org; not all the examples
+are used here.
 
 ## FILE SPACING:
-
-**awkish doesn't have ORS so we need to work around this**
 
 ### double space a file
 
 ```python
-a = Awk()
+a = Awk(ORS='\n\n')
 a.all()
 ```
-
-`all` works on every line and the default is to echo the line exactly.
 
 ### double space a file which already has blank lines in it.
 
 Output file should contain no more than one blank line between lines of text.
 
 ```python
-a = Awk()
+a = Awk(ORS='\n\n')
 a.when(lambda self:self.nf>0)()
 ```
+
+This just excludes blank lines from printing.
 
 ### triple space a file
 
 ```python
-a = Awk()
-a.all(lambda self:self.print(self.line+'\n')
+a = Awk(ORS='\n\n\n')
+a.all()
 ```
 
 ## NUMBERING AND CALCULATIONS:
 
-### precede each line by its line number FOR THAT FILE (left alignment).
+### precede each line by its line number FOR THAT FILE.
 
 Using a tab (\t) instead of space will preserve margins.
 
@@ -49,7 +50,10 @@ a = Awk()
 a.all(lambda self: print(self.fnr+'\t'+self.line)
 ```
 
-### precede each line by its line number FOR ALL FILES TOGETHER, with tab.
+This could be made even shorter if the action in the `a.all` decorator was
+`lambda:print(a.fnr+'\t'+a.line)` but not really worth it.
+
+### precede each line by its line number FOR ALL FILES TOGETHER.
 
 ```python
 a = Awk()
@@ -84,7 +88,8 @@ a.all(lambda self:print(sum(map(float, self.fields))))
 ```python
 a = Awk()
 a.begin(lambda self:self.tnf=0)
-a.all(lambda self:self.tnf+=self.nf)
+@a.all
+def f(self):self.tnf+=self.nf
 a.end(lambda self:print(self.tnf)
 ```
 
@@ -92,8 +97,9 @@ a.end(lambda self:print(self.tnf)
 
 ```python
 a = Awk()
-a.begin(lambda self:self.total=0)
-a.when(Awk.find("Beth"))(lambda self:self.total+=1)
+a.total = 0
+@a.when(Awk.find("Beth"))
+def f(self):self.total+=1
 a.end(lambda self:print(self.total)
 ```
 
@@ -103,8 +109,9 @@ Intended for finding the longest string in field #1
 
 ```python
 a = Awk()
-a.begin(lambda self:self.max=0)
-a.when(lambda self:len(self.f1)>self.max)(lambda self:self.max=len(self.f1))
+a.max=0)
+@a.when(lambda self:len(self.f1)>self.max)
+def(self):self.max:=len(self.f1)
 a.end(lambda self:print(self.max, self.line)
 ```
 
@@ -112,7 +119,7 @@ a.end(lambda self:print(self.max, self.line)
 
 ```python
 a = Awk()
-a.all(lambda self: print(str(self.nf)+':\n'+self.line))
+a.all(lambda self: print(str(self.nf)+':\t'+self.line))
 ```
 
 ### print the last field of each line
@@ -124,7 +131,13 @@ a.all(lambda self: print(self.fields[-1]))
 
 ### print the last field of the last line
 
-awk '{ field = $NF }; END{ print field }'
+```python
+a = Awk()
+a.lastfield=''
+@a.all
+def f(self): self.lastfield = self.fields[-1]
+@a.end(lambda self: print(self.lastfield))
+```
 
 ### print every line with more than 4 fields
 
@@ -144,30 +157,17 @@ a.when(lambda self: self.fields[-1]>4)()
 
 ### delete leading whitespace (spaces, tabs) from front of each line
 
-aligns all text flush left
-
-awk '{sub(/^[ \t]+/, "")};1'
-
-### delete trailing whitespace (spaces, tabs) from end of each line
-
-awk '{sub(/[ \t]+$/, "")};1'
-
-### delete BOTH leading and trailing whitespace from each line
-
-awk '{gsub(/^[ \t]+|[ \t]+$/,"")};1'
-awk '{$1=$1};1' # also removes extra space between fields
+```python
+a = Awk()
+a.all(lambda self: print(self.line.lstrip()))
+```
 
 ### insert 5 blank spaces at beginning of each line (make page offset)
 
-awk '{sub(/^/, " ")};1'
-
-### align all text flush right on a 79-column width
-
-awk '{printf "%79s\n", $0}' file\*
-
-### center all text on a 79-character width
-
-awk '{l=length();s=int((79-l)/2); printf "%"(s+l)"s\n",$0}' file\*
+```python
+a = Awk()
+a.all(lambda self: print('     '+self.line))
+```
 
 ### substitute (find and replace) "foo" with "bar" on each line
 
@@ -182,6 +182,8 @@ a.all(lambda self: print(self.line.replace(self.findstr, self.repstring))
 
 ```python
 a = Awk()
+a.findstr = 'foo'
+a.repstring = 'bar'
 @a.when(Awk.find('baz'))
 def rep(self):
     self.line = self.line.replace(findstr, repstring))
@@ -191,21 +193,16 @@ a(filename, findstr='foo', repstring='bar')
 
 ### substitute "foo" with "bar" EXCEPT for lines which contain "baz"
 
-awk '!/baz/{gsub(/foo/, "bar")}; 1'
-
-### change "scarlet" or "ruby" or "puce" to "red"
-
-awk '{gsub(/scarlet|ruby|puce/, "red")}; 1'
-
-### reverse order of lines (emulates "tac")
-
-awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }' file\*
-
-### if a line ends with a backslash, append the next line to it
-
-(fails if there are multiple lines ending with backslash...)
-
-awk '/\\$/ {sub(/\\$/,""); getline t; print $0 t; next}; 1' file\*
+```python
+a = Awk()
+a.findstr = 'foo'
+a.repstring = 'bar'
+@a.when(lambda self:not re.match('baz', self.string))
+def rep(self):
+    self.line = self.line.replace(findstr, repstring))
+a.all()
+a(filename, findstr='foo', repstring='bar')
+```
 
 ### print and sort the login names of all users
 
@@ -227,10 +224,6 @@ def printline(self):
     self.fields[1]=''
     self.print(*self.fields)
 ```
-
-### print in reverse order the fields of every line
-
-awk '{for (i=NF; i>0; i--) printf("%s ",$i);print ""}' file
 
 ### concatenate every 5 lines of input
 
@@ -266,7 +259,7 @@ def b(self):
 @a.all
 def update(self):
     self.store = self.store[-1], self.line
-a.end(lambda self:print(self.store, sep='\n', end='\n')
+a.end(lambda self:print(*self.store, sep='\n', end='\n')
 ```
 
 ### print the last line of a file (emulates "tail -1")
@@ -274,18 +267,16 @@ a.end(lambda self:print(self.store, sep='\n', end='\n')
 ```python
 a = Awk()
 @a.all
-def update(self):
-    self.lastline = self.line
+def f(self): self.lastline = self.line
 a.end(lambda self:self.print(self.lastline)
 ```
 
 ### print only lines which match regular expression (emulates "grep")
 
-awk '/regex/'
-
-### print only lines which do NOT match regex (emulates "grep -v")
-
-awk '!/regex/'
+```python
+a = Awk()
+a.when(Awk.search(patt))()
+```
 
 ### print any line where field #5 is equal to "abc123"
 
@@ -302,28 +293,6 @@ This will also print lines which have less than 5 fields.
 a = Awk()
 a.when(lambda self='':self.f5!="abc123")()
 ```
-
-### matching a field against a regular expression
-
-awk '$7 ~ /^[a-f]/' # print line if field #7 matches regex
-awk '$7 !~ /^[a-f]/' # print line if field #7 does NOT match regex
-
-### print the line immediately before a regex, but not the line containing the regex
-
-awk '/regex/{print x};{x=$0}'
-awk '/regex/{print (NR==1 ? "match on line 1" : x)};{x=$0}'
-
-### print the line immediately after a regex, but not the line containing the regex
-
-awk '/regex/{getline;print}'
-
-### grep for AAA and BBB and CCC (in any order on the same line)
-
-awk '/AAA/ && /BBB/ && /CCC/'
-
-### grep for AAA and BBB and CCC (in that order)
-
-awk '/AAA.*BBB.*CCC/'
 
 ### print only lines of 65 characters or longer
 

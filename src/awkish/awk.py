@@ -82,7 +82,7 @@ class Awk:
         fields = [g + v for (g, v) in zip(gaps, fields)]
         return [f.strip('"').replace('""', '"') for f in fields]
 
-    def __init__(self, FS=re.compile(" +"), OFS=" ", RS="", ORS="\n"):
+    def __init__(self, FS=re.compile(" +"), OFS=" ", RS="", ORS="\n", **kwargs):
         """creates an instance of an awk-like program object
 
         Args:
@@ -103,11 +103,11 @@ class Awk:
 
         ```
         from awkish import Awk
-        a = Awk()
+        awk = Awk()
         # define actions
         ...
         # call awk
-        ma(filename1, filename2, filename3)
+        awk(filename1, filename2, filename3)
         ```
 
         will create a Awk object and run it over the three files named in
@@ -122,8 +122,16 @@ class Awk:
         we would write
 
         ```
-        ma(filename1, filename2, filename3, output="out.txt")
+        a(filename1, filename2, filename3, output="out.txt")
         ```
+        
+        You can create some additional properties on the awk object by passing
+        them as keyword arguments to the call:
+        ```
+        awk(filename1, filename2, filename3, output="out.txt", x=5)
+        ```
+        In conditions and actions, this value `x` can be accessed and changed.
+        
         """
         self.FS = FS  # field separator
         self.OFS = OFS  # output field separator
@@ -145,7 +153,7 @@ class Awk:
 
     def __getattr__(self, name):
         # returns none for names equal to 'fnnn'
-        if re.match(r'f\d+', name):
+        if re.match(r'f[1-9]\d*', name) and hasattr(self, 'line'):
             return None
         raise AttributeError(f"'Awk' object has no attribute '{name}'")
         
@@ -440,6 +448,7 @@ class Awk:
 
     def __call__(self, *filenames, output=None, mode="wt", **kwargs):
         # run the awk over all the files
+
         @contextmanager
         def file_or_stdout(f):
             # __enter__
@@ -452,7 +461,10 @@ class Awk:
                 outfile.close()
 
         self.nr = 0
-
+        # add properties temporarily
+        for k,v in kwargs.items():
+            setattr(self, k, v)
+            
         with file_or_stdout(output) as f:
             with redirect(f):
                 # run the begin code
@@ -464,6 +476,10 @@ class Awk:
                 # run the end code
                 for action in self.endjob_calls:
                     action(self)
+                    
+        # remove the properties
+        #for k in kwargs:
+        #    delattr(self, k)
 
     def _processfile(self, fname):
         # args has line, fields f0, f1, ... nr, fnr, filename, self
